@@ -1,0 +1,13 @@
+# Скопировать в ~/.dbt/profiles.yml и подставить значения из .env
+talap:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: 127.0.0.1
+      port: 5442
+      user: talap
+      password: "{{ env_var('PG_PASSWORD') }}"
+      dbname: talap
+      schema: dbt
+      threads: 4

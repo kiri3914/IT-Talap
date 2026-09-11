@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: stg_hh_vacancies
+    description: >
+      Типизированные вакансии hh. Контакты вырезаны, HTML снят.
+      Образец стиля для остальных staging-моделей.
+    columns:
+      - name: source_id
+        description: Идентичность внутри источника. Не путать с vacancy_nk.
+        tests: [not_null]
+      - name: salary_currency
+        description: RUR приведён к RUB.
+        tests:
+          - accepted_values:
+              values: ["KZT", "UZS", "KGS", "USD", "RUB", "EUR"]
+              config: {severity: warn}
+      - name: salary_from
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "<= salary_to or salary_to is null"
+              config: {severity: warn}

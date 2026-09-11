@@ -1,0 +1,29 @@
+name: talap
+version: "0.1.0"
+config-version: 2
+profile: talap
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  talap:
+    staging:
+      +schema: staging
+      +materialized: view      # staging дёшево пересчитать, храним как view
+    core:
+      +schema: core
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
+
+vars:
+  # ТЗ §5.4: агрегат не публикуется, если в группе меньше наблюдений
+  min_observations: 5
+  # Крупные города показываем отдельно, остальные сворачиваем (findings-01)
+  major_cities: ["Алматы", "Астана", "Ташкент", "Бишкек"]

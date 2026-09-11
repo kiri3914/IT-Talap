@@ -1,0 +1,31 @@
+version: 2
+
+sources:
+  - name: raw_landing
+    description: >
+      Посадочный слой: JSON из объектного хранилища как есть, без разбора.
+      Загружается `python -m ingestion.load_to_postgres`.
+    schema: raw_landing
+    tables:
+      - name: hh_vacancies
+        description: Вакансии hh. Ключ (source_id, dt, kind).
+        columns:
+          - name: source_id
+            tests: [not_null]
+          - name: payload
+            tests: [not_null]
+        freshness:
+          warn_after: {count: 26, period: hour}
+          error_after: {count: 48, period: hour}
+        loaded_at_field: loaded_at
+
+      - name: telegram_posts
+        description: Посты телеграм-каналов. Ключ (channel, message_id).
+
+      - name: market_counters
+        description: >
+          Сколько всего вакансий и сколько IT по странам на дату.
+          Невосстановимо задним числом — площадка историю не отдаёт.
+
+      - name: currency_rates
+        description: Курсы к USD на дату, из нацбанков.
