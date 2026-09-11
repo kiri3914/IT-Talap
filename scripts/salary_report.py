@@ -99,6 +99,8 @@ def main() -> int:
     parser.add_argument("--city")
     parser.add_argument("--currency", default="KZT")
     parser.add_argument("--min-count", type=int, default=MIN_COUNT)
+    parser.add_argument("--usd", action="store_true",
+                        help="пересчитать в USD по курсу на дату (сравнение стран)")
     parser.add_argument("--mix-gross", action="store_true",
                         help="не разделять gross и net (даёт смешанную, некорректную медиану)")
     args = parser.parse_args()
@@ -114,14 +116,32 @@ def main() -> int:
     vacancies = load(storage, dt)
     print(f"дата: {dt}, всего вакансий: {len(vacancies)}")
 
+    fx: dict[str, float] = {}
+    if args.usd:
+        payload = storage.read_json(f"raw/currency/dt={dt}/rates-000.json.gz")
+        if not payload:
+            print(f"\nнет курсов за {dt}. Соберите: python -m ingestion.run --dt {dt} --skip-details")
+            return 1
+        fx = payload["rates"]
+        args.currency = "USD"
+        print("курсы: " + ", ".join(f"{c}={v:.4g}" for c, v in sorted(fx.items())
+                                    if c in ("KZT", "UZS", "KGS")))
+
     # Оставляем только с зарплатой в выбранной валюте
     rows = []
     for v in vacancies:
         sal = v.get("salary") or v.get("salary_range")
-        if not isinstance(sal, dict) or sal.get("currency") != args.currency:
+        if not isinstance(sal, dict):
             continue
+        cur = sal.get("currency")
         value = point_estimate(sal)
-        if not value:
+        if not value or not cur:
+            continue
+        if fx:
+            if cur not in fx:
+                continue  # курса нет — вакансию не считаем, а не выдумываем курс
+            value /= fx[cur]
+        elif cur != args.currency:
             continue
         city_raw = (v.get("area") or {}).get("name") or "—"
         city = (

@@ -25,6 +25,7 @@ from datetime import date, datetime, timedelta, timezone
 from ingestion.alerts import send as send_alert
 from ingestion.config import AlertConfig, HHConfig, S3Config
 from ingestion.schemas.hh import check_list_items
+from ingestion.sources.currency import fetch_rates
 from ingestion.sources.hh import COUNTRIES, HHClient, today
 from ingestion.storage.s3 import RawStorage
 
@@ -157,6 +158,15 @@ def main() -> int:
     hh_cfg = HHConfig.from_env()
     alerts = AlertConfig.from_env()
     storage = RawStorage(s3_cfg)
+
+    # Курсы валют — один раз за запуск, не на страну.
+    # Без них не сравнить страны: 30% зарплатной выборки в UZS и KGS.
+    try:
+        rates = fetch_rates(date.fromisoformat(args.dt), hh_cfg.user_agent)
+        storage.write_json(f"raw/currency/dt={args.dt}/rates-000.json.gz", rates)
+    except Exception as exc:  # noqa: BLE001 — курсы не должны блокировать сбор вакансий
+        log.exception("курсы не собрались")
+        send_alert(alerts, f"⚠️ Talap / курсы {args.dt}\nНе собрались: {exc}")
 
     countries = args.country or sorted(COUNTRIES)
     results: list[dict] = []
