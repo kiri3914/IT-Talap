@@ -14,12 +14,33 @@ cat ~/.ssh/id_ed25519.pub
 ssh -T git@github.com     # должно ответить "Hi kiri3914!"
 
 git clone git@github.com:kiri3914/IT-Talap.git ~/talap
-cd ~/talap
-bash scripts/setup_server.sh
 ```
 
-Скрипт ставит python3-venv, часовой пояс Asia/Almaty, окружение, зависимости
-и создаёт `.env` с правами 600.
+Установка идёт в два шага: системная часть требует root, остальное — нет.
+
+### Шаг 1 — от root, один раз
+
+```bash
+bash /home/kiri/talap/scripts/setup_server_root.sh
+```
+
+Ставит python3-venv, git, cron, переводит часовой пояс в Asia/Almaty,
+включает cron в автозагрузку и добавляет `kiri` в группу sudo.
+
+Если у `kiri` нет пароля (типичная ситуация, когда заходят через `su kiri`
+из-под root) — задайте его тут же, иначе sudo работать не будет:
+
+```bash
+passwd kiri
+```
+
+### Шаг 2 — от kiri
+
+```bash
+cd ~/talap && bash scripts/setup_server.sh
+```
+
+Создаёт окружение, ставит зависимости и `.env` с правами 600. Sudo не требует.
 
 ## Заполнить credentials
 
