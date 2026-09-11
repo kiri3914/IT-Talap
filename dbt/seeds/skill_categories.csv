@@ -1,0 +1,81 @@
+skill_raw,skill_code,category
+SQL,sql,language
+Python,python,language
+JavaScript,javascript,language
+TypeScript,typescript,language
+Java,java,language
+C#,csharp,language
+PHP,php,language
+Go,go,language
+Kotlin,kotlin,language
+Swift,swift,language
+C++,cpp,language
+1С программирование,1c,platform
+Django,django,framework
+FastAPI,fastapi,framework
+Flask,flask,framework
+React,react,framework
+Vue.js,vue,framework
+Angular,angular,framework
+Node.js,nodejs,framework
+.NET,dotnet,framework
+Spring,spring,framework
+Laravel,laravel,framework
+PostgreSQL,postgresql,database
+MySQL,mysql,database
+MS SQL Server,mssql,database
+Oracle,oracle,database
+MongoDB,mongodb,database
+Redis,redis,database
+ClickHouse,clickhouse,database
+Elasticsearch,elasticsearch,database
+Docker,docker,tool
+Kubernetes,kubernetes,tool
+Git,git,tool
+CI/CD,cicd,tool
+Jenkins,jenkins,tool
+Linux,linux,tool
+Nginx,nginx,tool
+Ansible,ansible,tool
+Terraform,terraform,tool
+Kafka,kafka,tool
+RabbitMQ,rabbitmq,tool
+Jira,jira,tool
+Confluence,confluence,tool
+Figma,figma,tool
+Adobe Photoshop,photoshop,tool
+Adobe Illustrator,illustrator,tool
+Power BI,powerbi,tool
+Tableau,tableau,tool
+Excel,excel,tool
+AWS,aws,cloud
+Microsoft Azure,azure,cloud
+Google Cloud,gcp,cloud
+1С: Бухгалтерия,1c_accounting,platform
+1С: Зарплата и кадры,1c_hr,platform
+1С: Управление торговлей,1c_trade,platform
+Обновление конфигурации 1С,1c_config,platform
+Bitrix24,bitrix,platform
+SAP,sap,platform
+Английский язык,english,soft
+Аналитическое мышление,analytical_thinking,soft
+Деловая коммуникация,business_communication,soft
+Деловое общение,business_communication,soft
+Деловая переписка,business_writing,soft
+Организаторские навыки,organizational_skills,soft
+Работа в команде,teamwork,soft
+Работа с большим объемом информации,data_handling,soft
+Грамотная речь,communication,soft
+Многозадачность,multitasking,soft
+Ориентация на результат,result_oriented,soft
+Обучение и развитие,mentoring,soft
+Бизнес-анализ,business_analysis,domain
+Бухгалтерский учет,accounting,domain
+Графический дизайн,graphic_design,domain
+UX/UI дизайн,ux_ui,domain
+Управление проектами,project_management,domain
+Тестирование,testing,domain
+Информационная безопасность,infosec,domain
+Машинное обучение,machine_learning,domain
+Администрирование серверов,server_admin,domain
+Техническая поддержка,tech_support,domain

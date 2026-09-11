@@ -1,0 +1,40 @@
+version: 2
+
+seeds:
+  - name: profession_map
+    description: >
+      Соответствие professional_role из hh нашим кодам профессий.
+      У вакансии hh ровно одна роль (проверено 2026-09-12), поэтому
+      маппинг однозначный, без разрешения конфликтов.
+
+      `is_core_it` отделяет разработку и данные от дизайна и менеджмента.
+      Это нужно, потому что «IT-категория» hh шире, чем ожидалось:
+      дизайнеры 12.7% и руководители проектов 10.2% от всех IT-вакансий
+      (docs/findings-01-first-data.md §7). Для продукта «сколько платят
+      разработчику» это шум, для витрины по семьям — полезный разрез.
+    columns:
+      - name: hh_role_id
+        tests: [unique, not_null]
+      - name: profession_code
+        tests: [unique, not_null]
+      - name: family
+        tests:
+          - accepted_values:
+              values: [development, data, infrastructure, support, design, management]
+
+  - name: skill_categories
+    description: >
+      Категории для справочника скиллов. hh отдаёт 3 152 уникальных значения
+      на 3 386 вакансий — справочник грязный, рядом с SQL лежит
+      «Аналитическое мышление».
+
+      Размечены самые частые: они покрывают заметную долю вакансий, а хвост
+      остаётся нераспознанным намеренно — размечать три тысячи значений
+      вручную не окупается.
+    columns:
+      - name: skill_raw
+        tests: [unique, not_null]
+      - name: category
+        tests:
+          - accepted_values:
+              values: [language, framework, database, cloud, tool, platform, soft, domain, other]

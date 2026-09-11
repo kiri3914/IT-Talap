@@ -1,0 +1,26 @@
+hh_role_id,profession_code,family,title_ru,title_en,is_core_it
+96,developer,development,"Программист, разработчик",Developer,true
+160,devops,development,DevOps-инженер,DevOps Engineer,true
+104,dev_lead,development,Руководитель группы разработки,Engineering Manager,true
+124,qa,development,Тестировщик,QA Engineer,true
+126,tech_writer,development,Технический писатель,Technical Writer,true
+10,analyst,data,Аналитик,Analyst,true
+148,systems_analyst,data,Системный аналитик,Systems Analyst,true
+150,business_analyst,data,Бизнес-аналитик,Business Analyst,true
+156,data_analyst,data,"BI-аналитик, аналитик данных",BI / Data Analyst,true
+164,product_analyst,data,Продуктовый аналитик,Product Analyst,true
+165,data_scientist,data,Дата-сайентист,Data Scientist,true
+157,analytics_lead,data,Руководитель отдела аналитики,Head of Analytics,true
+155,methodologist,data,Методолог,Methodologist,false
+113,sysadmin,infrastructure,Системный администратор,System Administrator,true
+114,systems_engineer,infrastructure,Системный инженер,Systems Engineer,true
+112,network_engineer,infrastructure,Сетевой инженер,Network Engineer,true
+116,security,infrastructure,Специалист по информационной безопасности,Information Security Specialist,true
+121,support,support,Специалист технической поддержки,Technical Support Specialist,true
+34,designer,design,"Дизайнер, художник",Designer,false
+12,art_director,design,"Арт-директор, креативный директор",Art Director,false
+25,game_designer,design,Гейм-дизайнер,Game Designer,false
+73,product_manager,management,Менеджер продукта,Product Manager,false
+107,project_manager,management,Руководитель проектов,Project Manager,false
+36,cio,management,Директор по информационным технологиям (CIO),CIO,false
+125,cto,management,Технический директор (CTO),CTO,false
