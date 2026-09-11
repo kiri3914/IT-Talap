@@ -82,6 +82,7 @@ bash scripts/check_env.sh
 | `python scripts/explore.py` | профиль данных: зарплаты, опыт, скиллы, компании |
 | `python scripts/salary_report.py` | медианы по профессиям и городам |
 | `python scripts/market_trend.py` | динамика доли IT в рынке |
+| `python scripts/build_report.py` | HTML-отчёт, открывается двойным кликом |
 | `python scripts/verify_coverage.py` | не теряем ли вакансии |
 | `bash scripts/check_env.sh` | все ли переменные заданы |
 
