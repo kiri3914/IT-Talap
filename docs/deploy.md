@@ -133,7 +133,19 @@ openssl rand -base64 24        # вставить в MINIO_ROOT_PASSWORD в .env
 nano .env
 
 docker compose up -d
-docker compose logs minio-init   # ждём «бакет готов»
+docker compose ps                # STATUS должен стать healthy
+
+.venv/bin/python scripts/init_bucket.py
+```
+
+Скрипт создаёт бакет, включает версионирование и проверяет запись/чтение.
+Повторный запуск безопасен.
+
+Если порт 9000 занят (`port is already allocated`) — посмотрите, кто его держит:
+
+```bash
+sudo ss -tlnp | grep 9000
+docker ps -a | grep minio
 ```
 
 Порты слушают только `127.0.0.1` — наружу MinIO не выставлен. Консоль смотреть через туннель с рабочей машины:
