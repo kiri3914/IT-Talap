@@ -9,6 +9,9 @@ extra="allow", всё опционально. Задача — заметить,
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 
@@ -36,6 +39,28 @@ class HHVacancyListItem(RawModel):
     area: dict | None = None
     salary: dict | None = None
     professional_roles: list[dict] | None = None
+
+
+KNOWN_FIELDS_PATH = Path(__file__).parent / "hh_known_fields.json"
+
+
+def _known_fields() -> set[str]:
+    """Поля, которые уже видели. Отсутствие файла = первый запуск."""
+    base = set(HHVacancyListItem.model_fields)
+    if KNOWN_FIELDS_PATH.exists():
+        try:
+            base |= set(json.loads(KNOWN_FIELDS_PATH.read_text()))
+        except (json.JSONDecodeError, OSError):
+            pass
+    return base
+
+
+def _remember_fields(fields: set[str]) -> None:
+    try:
+        merged = sorted(_known_fields() | fields)
+        KNOWN_FIELDS_PATH.write_text(json.dumps(merged, indent=2, ensure_ascii=False))
+    except OSError:
+        pass  # не смогли запомнить — переживём, алерт просто повторится
 
 
 class SchemaIssue(BaseModel):
@@ -71,18 +96,21 @@ def check_list_items(items: list[dict]) -> list[SchemaIssue]:
             )
         )
 
-    # Незнакомые поля — не ошибка, но повод посмотреть: возможно, источник расширил схему
-    known = set(HHVacancyListItem.model_fields)
+    # Поля, которых раньше не было. Алертим только на действительно новые:
+    # hh отдаёт ~48 полей, модель объявляет 8 — без базы известных полей
+    # алерт срабатывал бы каждый запуск и его перестали бы читать.
     unknown: set[str] = set()
     for item in items[:100]:
-        unknown |= set(item) - known
-    if unknown:
+        unknown |= set(item)
+    new_fields = unknown - _known_fields()
+    if new_fields:
         issues.append(
             SchemaIssue(
                 kind="new_fields",
-                count=len(unknown),
-                sample=", ".join(sorted(unknown)[:15]),
+                count=len(new_fields),
+                sample=", ".join(sorted(new_fields)[:15]),
             )
         )
+        _remember_fields(unknown)  # чтобы не повторять тот же алерт завтра
 
     return issues

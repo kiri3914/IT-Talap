@@ -6,3 +6,4 @@ __pycache__/
 .DS_Store
 *.log
 data/
+ingestion/schemas/hh_known_fields.json
