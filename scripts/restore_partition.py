@@ -98,8 +98,14 @@ def main() -> int:
             skipped += 1
             continue
         if candidate["latest"]:
-            print(f"  = {key}: под порог попадает текущая версия — "
-                  f"порог слишком поздний, сдвиньте --before раньше")
+            # Одна версия и она же текущая — объект не трогали, восстанавливать
+            # нечего. Если версий несколько, значит порог выбран слишком поздно.
+            real_versions = [v for v in vs if not v["marker"]]
+            if len(real_versions) == 1:
+                print(f"  · {key}: одна версия, не менялся")
+            else:
+                print(f"  = {key}: под порог попадает текущая версия — "
+                      f"сдвиньте --before раньше")
             skipped += 1
             continue
         client.copy_object(
