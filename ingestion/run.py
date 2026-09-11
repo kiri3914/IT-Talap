@@ -141,6 +141,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Talap — сбор вакансий hh")
     parser.add_argument("--country", choices=sorted(COUNTRIES), action="append")
     parser.add_argument("--dt", default=today(), help="дата партиции YYYY-MM-DD")
+    parser.add_argument(
+        "--force-past",
+        action="store_true",
+        help="разрешить запись в партицию прошлой даты (затрёт снимок того дня)",
+    )
     parser.add_argument("--skip-details", action="store_true", help="только списки")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
@@ -153,6 +158,21 @@ def main() -> int:
     # строк за запуск — в cron логи распухнут, а полезные сообщения утонут.
     for noisy in ("httpx", "httpcore", "botocore", "boto3", "urllib3", "s3transfer"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
+
+    # Источник отдаёт только текущую выдачу. Запуск с --dt за прошлую дату
+    # запишет СЕГОДНЯШНИЙ снимок под вчерашним числом и затрёт историю,
+    # которую нельзя собрать заново. Раньше это выглядело как бэкфилл.
+    if args.dt < today() and not args.force_past:
+        log.error(
+            "Отказ: --dt %s в прошлом. hh не отдаёт выдачу за прошедшие даты — "
+            "запись затрёт снимок того дня, а восстановить его неоткуда.\n"
+            "  Если день пропущен и партиции нет — собрать его уже нельзя.\n"
+            "  Если нужны только курсы валют за прошлую дату: "
+            "python -m ingestion.backfill_rates --dt %s\n"
+            "  Если вы точно понимаете, что делаете: --force-past",
+            args.dt, args.dt,
+        )
+        return 2
 
     s3_cfg = S3Config.from_env()
     hh_cfg = HHConfig.from_env()

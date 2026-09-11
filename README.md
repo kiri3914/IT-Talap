@@ -74,7 +74,8 @@ bash scripts/check_env.sh
 | Команда | Что делает |
 |---|---|
 | `python -m ingestion.run` | сбор hh по трём странам |
-| `python -m ingestion.run --dt 2026-09-12` | бэкфилл за дату |
+| `python -m ingestion.backfill_rates --dt ...` | догрузить курсы за прошлые даты |
+| `python scripts/restore_partition.py` | восстановить затёртую партицию из версий |
 | `python -m ingestion.run_telegram` | сбор Telegram-каналов |
 | `python -m ingestion.load_to_postgres` | сырьё из бакета в Postgres |
 | `python scripts/show_raw.py` | что в бакете, есть ли пропущенные дни |
