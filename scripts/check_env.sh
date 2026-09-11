@@ -22,6 +22,9 @@ check() {
         echo "  ✗ $name — содержит \${...}, подставьте значение буквально"; missing=1
     elif [[ "$value" == *"<"*">"* ]]; then
         echo "  ✗ $name — остался placeholder из примера"; missing=1
+    elif [[ "$value" == *"example.com"* ]]; then
+        # hh отвечает 400 bad_user_agent на example.com в User-Agent
+        echo "  ✗ $name — содержит example.com, подставьте реальный контакт"; missing=1
     else
         echo "  ✓ $name"
     fi
