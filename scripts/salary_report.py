@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ingestion.config import S3Config  # noqa: E402
+from enrichment.grade import detect as detect_grade  # noqa: E402
 from ingestion.storage.s3 import RawStorage  # noqa: E402
 
 MIN_COUNT = 5  # ТЗ §5.4: ниже — статистически бессмысленно
@@ -30,14 +31,6 @@ MIN_COUNT = 5  # ТЗ §5.4: ниже — статистически бессм�
 # порог проходит 21% групп, внутри одного крупного города — 65% (findings-01)
 MAJOR_CITIES = {"Алматы", "Астана", "Ташкент", "Бишкек"}
 COUNTRY_NAMES = {"kz": "Казахстана", "uz": "Узбекистана", "kg": "Кыргызстана"}
-
-GRADE_PATTERNS = [
-    ("lead", r"(team\s*lead|tech\s*lead|тимлид|тим\s*лид|руководител|head\s+of|начальник)"),
-    ("senior", r"(senior|сеньор|синьор|старший|ведущий|sr\b)"),
-    ("junior", r"(junior|джуниор|джун|младший|стажёр|стажер|intern|trainee|начинающий)"),
-    ("middle", r"(middle|мидл|mid\b)"),
-]
-
 
 def load(storage: RawStorage, dt: str) -> list[dict]:
     out = []
@@ -51,11 +44,9 @@ def load(storage: RawStorage, dt: str) -> list[dict]:
 
 
 def grade_of(v: dict) -> str:
-    text = (v.get("name") or "").lower()
-    for grade, pattern in GRADE_PATTERNS:
-        if re.search(pattern, text):
-            return grade
-    return "—"
+    """Грейд — дополнительная ось (ТЗ §5.4). Правила общие с телеграмом."""
+    grade, _ = detect_grade(v.get("name"), v.get("description"))
+    return grade or "—"
 
 
 def point_estimate(sal: dict) -> float | None:
