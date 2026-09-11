@@ -47,8 +47,11 @@ class FetchStats:
 class HHClient:
     def __init__(self, cfg: HHConfig) -> None:
         headers = {"User-Agent": cfg.user_agent, "Accept": "application/json"}
-        if cfg.token:
-            headers["Authorization"] = f"Bearer {cfg.token}"
+        token = cfg.resolve_token()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        else:
+            log.warning("токен не задан — /vacancies вернёт 403")
         self._http = RateLimitedClient(BASE_URL, headers)
         self.stats = FetchStats()
 

@@ -40,13 +40,27 @@ class S3Config:
 class HHConfig:
     user_agent: str
     token: str | None
+    client_id: str | None
+    client_secret: str | None
 
     @classmethod
     def from_env(cls) -> HHConfig:
         return cls(
             user_agent=_require("HH_USER_AGENT"),
             token=os.getenv("HH_TOKEN", "").strip() or None,
+            client_id=os.getenv("HH_CLIENT_ID", "").strip() or None,
+            client_secret=os.getenv("HH_CLIENT_SECRET", "").strip() or None,
         )
+
+    def resolve_token(self) -> str | None:
+        """Готовый HH_TOKEN, либо обмен client_credentials на application token."""
+        if self.token:
+            return self.token
+        if self.client_id and self.client_secret:
+            from ingestion.auth import fetch_application_token
+
+            return fetch_application_token(self.client_id, self.client_secret, self.user_agent)
+        return None
 
 
 @dataclass(frozen=True)
