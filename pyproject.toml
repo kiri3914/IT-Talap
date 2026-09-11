@@ -11,6 +11,14 @@ dependencies = [
     "psycopg[binary]>=3.1",
 ]
 
+# Без явного списка setuptools не может выбрать между ingestion, enrichment и dbt
+# и отказывается собирать. dbt — не python-пакет, это проект dbt.
+[tool.setuptools.packages.find]
+include = ["ingestion*", "enrichment*"]
+
+[tool.setuptools.package-data]
+ingestion = ["sql/*.sql"]
+
 [project.optional-dependencies]
 dev = ["ruff>=0.5"]
 
