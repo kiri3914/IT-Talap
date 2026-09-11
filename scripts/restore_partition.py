@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -58,18 +58,38 @@ def main() -> int:
         return 1
 
     if args.list or not args.before:
+        local_tz = datetime.now().astimezone().tzinfo
+        print(f"Время в UTC (в скобках — местное, {local_tz}).")
+        print("ВАЖНО: --before сравнивается с UTC, не с местным временем.\n")
         for key in sorted(by_key):
-            print(f"\n{key}")
+            print(f"{key}")
             for v in by_key[key]:
                 kind = "удаление" if v["marker"] else f"{v['size']:>9} б"
                 mark = " ← текущая" if v["latest"] else ""
-                print(f"  {v['ts']:%Y-%m-%d %H:%M:%S}  {kind}  {v['id'][:18]}{mark}")
+                local = v["ts"].astimezone(local_tz)
+                print(f"  {v['ts']:%Y-%m-%d %H:%M:%S} UTC "
+                      f"({local:%m-%d %H:%M} мест.)  {kind}  {v['id'][:18]}{mark}")
+            print()
         if not args.before:
-            print("\nЧтобы восстановить, укажите --before с моментом ДО порчи, например:")
-            print(f"  --before {datetime.now(timezone.utc):%Y-%m-%d}T00:00:00")
+            # Подсказываем момент до последней записи, а не «сегодня в полночь»:
+            # запись, сделанную ночью по местному времени, полночь UTC не отсекает
+            newest = max(v["ts"] for vs in by_key.values() for v in vs)
+            older = [v["ts"] for vs in by_key.values() for v in vs
+                     if not v["marker"] and v["ts"] < newest - timedelta(minutes=5)]
+            print("Чтобы восстановить, укажите момент ДО порчи, в UTC.")
+            if older:
+                suggest = max(older) + timedelta(minutes=1)
+                print(f"  Последняя запись:      {newest:%Y-%m-%d %H:%M:%S} UTC")
+                print(f"  Предыдущая версия до:  {max(older):%Y-%m-%d %H:%M:%S} UTC")
+                print(f"\n  --before {suggest:%Y-%m-%dT%H:%M:%S}")
+            else:
+                print("  Версий старше последней записи нет — восстанавливать не из чего.")
         return 0
 
-    cutoff = datetime.fromisoformat(args.before).replace(tzinfo=timezone.utc)
+    cutoff = datetime.fromisoformat(args.before)
+    if cutoff.tzinfo is None:
+        cutoff = cutoff.replace(tzinfo=timezone.utc)
+    print(f"порог: {cutoff:%Y-%m-%d %H:%M:%S %Z}\n")
     restored = skipped = 0
     for key, vs in sorted(by_key.items()):
         candidate = next((v for v in vs if v["ts"] <= cutoff and not v["marker"]), None)
@@ -78,7 +98,8 @@ def main() -> int:
             skipped += 1
             continue
         if candidate["latest"]:
-            print(f"  = {key}: уже актуальна")
+            print(f"  = {key}: под порог попадает текущая версия — "
+                  f"порог слишком поздний, сдвиньте --before раньше")
             skipped += 1
             continue
         client.copy_object(
