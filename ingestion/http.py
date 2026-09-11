@@ -47,7 +47,11 @@ class RateLimitedClient:
                 if response.status_code == 200:
                     return response.json()
                 if response.status_code not in RETRY_STATUSES:
-                    response.raise_for_status()
+                    # Тело ответа объясняет причину — без него 400 неотличим от 400
+                    raise RuntimeError(
+                        f"{response.status_code} на {path} "
+                        f"params={params} -> {response.text[:500]}"
+                    )
                 last_exc = httpx.HTTPStatusError(
                     f"{response.status_code} на {path}",
                     request=response.request,
