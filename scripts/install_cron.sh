@@ -15,9 +15,17 @@ if crontab -l 2>/dev/null | grep -q "ingestion.run"; then
     exit 0
 fi
 
-( crontab -l 2>/dev/null; echo "$LINE" ) | crontab -
-echo "Поставлено:"
-crontab -l | grep "ingestion.run"
+# `|| true` обязателен: без него `crontab -l` на пустом crontab возвращает 1,
+# при set -e подоболочка умирает до echo, и crontab затирается пустым вводом.
+( crontab -l 2>/dev/null || true; echo "$LINE" ) | crontab -
+
+if crontab -l 2>/dev/null | grep -q "ingestion.run"; then
+    echo "Поставлено:"
+    crontab -l | grep "ingestion.run"
+else
+    echo "ОШИБКА: задание не появилось в crontab"
+    exit 1
+fi
 echo ""
 echo "Логи: $LOG_DIR/talap-YYYY-MM.log"
 echo "Проверить, что cron жив: systemctl status cron"
