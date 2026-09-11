@@ -26,6 +26,11 @@ from ingestion.storage.s3 import RawStorage  # noqa: E402
 
 MIN_COUNT = 5  # ТЗ §5.4: ниже — статистически бессмысленно
 
+# Крупные города показываем отдельно, остальные сворачиваем: по стране целиком
+# порог проходит 21% групп, внутри одного крупного города — 65% (findings-01)
+MAJOR_CITIES = {"Алматы", "Астана", "Ташкент", "Бишкек"}
+COUNTRY_NAMES = {"kz": "Казахстана", "uz": "Узбекистана", "kg": "Кыргызстана"}
+
 GRADE_PATTERNS = [
     ("lead", r"(team\s*lead|tech\s*lead|тимлид|тим\s*лид|руководител|head\s+of|начальник)"),
     ("senior", r"(senior|сеньор|синьор|старший|ведущий|sr\b)"),
@@ -94,6 +99,8 @@ def main() -> int:
     parser.add_argument("--city")
     parser.add_argument("--currency", default="KZT")
     parser.add_argument("--min-count", type=int, default=MIN_COUNT)
+    parser.add_argument("--mix-gross", action="store_true",
+                        help="не разделять gross и net (даёт смешанную, некорректную медиану)")
     args = parser.parse_args()
 
     storage = RawStorage(S3Config.from_env())
@@ -116,8 +123,12 @@ def main() -> int:
         value = point_estimate(sal)
         if not value:
             continue
-        city = (v.get("area") or {}).get("name") or "—"
-        if args.city and city != args.city:
+        city_raw = (v.get("area") or {}).get("name") or "—"
+        city = (
+            city_raw if city_raw in MAJOR_CITIES
+            else f"прочие города {COUNTRY_NAMES.get(v.get('_country'), '')}".strip()
+        )
+        if args.city and city_raw != args.city:
             continue
         rows.append({
             "value": value,
@@ -139,32 +150,60 @@ def main() -> int:
     print("\n⚠ Это ЗАЯВЛЕННЫЕ вилки из объявлений, а не зарплаты нанятых.")
     print("  Середина вилки берётся как одна точка на вакансию.")
 
+    if not args.mix_gross:
+        groups_gross = {True: "до вычета налогов", False: "на руки", None: "не указано"}
+        for flag, label in groups_gross.items():
+            subset = [r for r in rows if r["gross"] is flag]
+            if len(subset) < args.min_count:
+                continue
+            print(f"\n{'#' * 88}\n# {label.upper()}  ({len(subset)} вакансий)\n{'#' * 88}")
+            _render(subset, args)
+        print(f"\n{'=' * 88}")
+        print("gross и net считаются отдельно: разница около 10%, смешивать их")
+        print("значит получить величину, не означающую ничего. --mix-gross снимает разделение.")
+        return 0
+
+    _render(rows, args)
+    return 0
+
+
+def _render(rows: list[dict], args) -> None:
     by_role = defaultdict(list)
     by_city = defaultdict(list)
     by_role_city = defaultdict(list)
     by_exp = defaultdict(list)
     by_grade = defaultdict(list)
+    by_role_exp_city = defaultdict(list)
     for r in rows:
         by_role[r["role"]].append(r["value"])
         by_city[r["city"]].append(r["value"])
         by_role_city[(r["role"], r["city"])].append(r["value"])
         by_exp[r["exp"]].append(r["value"])
+        by_role_exp_city[(r["role"], r["exp"], r["city"])].append(r["value"])
         if r["grade"] != "—":
             by_grade[r["grade"]].append(r["value"])
 
+    # Опыт — основная ось (ТЗ §5.4): приходит из источника, заполнен у 100%
+    report("ПО ОПЫТУ", by_exp, args.min_count, args.currency)
     report("ПО ПРОФЕССИЯМ", by_role, args.min_count, args.currency)
     report("ПО ГОРОДАМ", by_city, args.min_count, args.currency)
-    report("ПО ОПЫТУ", by_exp, args.min_count, args.currency)
-    report("ПО ГРЕЙДУ (распознан у части вакансий)", by_grade, args.min_count, args.currency)
     report("ПРОФЕССИЯ × ГОРОД", by_role_city, args.min_count, args.currency)
+    report("ПРОФЕССИЯ × ОПЫТ × ГОРОД  — гранулярность mart_salary_stats",
+           by_role_exp_city, args.min_count, args.currency)
+    # Грейд — дополнительная ось: распознаётся правилами у 16% и даёт
+    # противоречивые результаты на малых выборках (findings-01)
+    report("ПО ГРЕЙДУ (дополнительно, распознан у части)", by_grade,
+           args.min_count, args.currency)
 
-    total_groups = len(by_role_city)
-    passed = sum(1 for v in by_role_city.values() if len(v) >= args.min_count)
-    print(f"\n{'=' * 88}")
-    print(f"Профессия × город: {passed} из {total_groups} групп прошли порог "
-          f"({100 * passed / total_groups:.0f}%)")
-    print("Это и есть ответ на вопрос, какая гранулярность витрин реально наполнится.")
-    return 0
+    for label, groups in (
+        ("профессия × город", by_role_city),
+        ("профессия × опыт × город", by_role_exp_city),
+    ):
+        total = len(groups)
+        passed = sum(1 for v in groups.values() if len(v) >= args.min_count)
+        if total:
+            print(f"  наполняемость {label:26} {passed:4} из {total:4} "
+                  f"({100 * passed / total:3.0f}%)")
 
 
 if __name__ == "__main__":
