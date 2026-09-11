@@ -36,6 +36,11 @@ class RawStorage:
         """raw/hh/country=kz/dt=2026-09-04/vacancies_list-000.json.gz"""
         return f"raw/{source}/country={country}/dt={dt}/{kind}-{part:03d}.json.gz"
 
+    @staticmethod
+    def channel_key(source: str, channel: str, dt: str, part: int) -> str:
+        """raw/telegram/channel=workitkz/dt=2026-09-12/posts-000.json.gz"""
+        return f"raw/{source}/channel={channel}/dt={dt}/posts-{part:03d}.json.gz"
+
     def write_json(self, key: str, payload: Any) -> int:
         """Пишет объект как gzip-JSON. Возвращает размер в байтах."""
         body = gzip.compress(

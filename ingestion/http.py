@@ -71,6 +71,30 @@ class RateLimitedClient:
 
         raise RuntimeError(f"не удалось получить {path} за {MAX_ATTEMPTS} попыток") from last_exc
 
+    def get_text(self, path: str, params: dict[str, Any] | None = None) -> str:
+        """Сырой текст ответа. Для источников, отдающих HTML, а не JSON."""
+        last_exc: Exception | None = None
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            self._throttle()
+            try:
+                response = self._client.get(path, params=params)
+            except httpx.HTTPError as exc:
+                last_exc = exc
+                log.warning("сетевая ошибка %s (попытка %d): %s", path, attempt, exc)
+            else:
+                if response.status_code == 200:
+                    return response.text
+                if response.status_code not in RETRY_STATUSES:
+                    raise RuntimeError(
+                        f"{response.status_code} на {path} -> {response.text[:300]}"
+                    )
+                log.warning("%s на %s (попытка %d)", response.status_code, path, attempt)
+
+            if attempt < MAX_ATTEMPTS:
+                time.sleep(min(2**attempt, 60) + random.uniform(0, 1))
+
+        raise RuntimeError(f"не удалось получить {path} за {MAX_ATTEMPTS} попыток") from last_exc
+
     def close(self) -> None:
         self._client.close()
 
