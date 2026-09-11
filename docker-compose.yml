@@ -22,5 +22,25 @@ services:
       retries: 5
       start_period: 10s
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: talap-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PG_USER:-talap}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?не задан в .env}
+      POSTGRES_DB: ${PG_DATABASE:-talap}
+    ports:
+      # На сервере 5432 уже занят постгресами других проектов
+      - "127.0.0.1:${PG_PORT:-5442}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-talap} -d ${PG_DATABASE:-talap}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   minio_data:
+  postgres_data:

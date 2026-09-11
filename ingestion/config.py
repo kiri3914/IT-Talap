@@ -64,6 +64,32 @@ class HHConfig:
 
 
 @dataclass(frozen=True)
+class PostgresConfig:
+    host: str
+    port: int
+    user: str
+    password: str
+    database: str
+
+    @classmethod
+    def from_env(cls) -> PostgresConfig:
+        return cls(
+            host=os.getenv("PG_HOST", "127.0.0.1"),
+            port=int(os.getenv("PG_PORT", "5442")),
+            user=os.getenv("PG_USER", "talap"),
+            password=_require("PG_PASSWORD"),
+            database=os.getenv("PG_DATABASE", "talap"),
+        )
+
+    @property
+    def dsn(self) -> str:
+        return (
+            f"postgresql://{self.user}:{self.password}"
+            f"@{self.host}:{self.port}/{self.database}"
+        )
+
+
+@dataclass(frozen=True)
 class AlertConfig:
     bot_token: str | None
     chat_id: str | None
