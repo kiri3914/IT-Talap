@@ -20,7 +20,7 @@ import argparse
 import logging
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from ingestion.alerts import send as send_alert
 from ingestion.config import AlertConfig, HHConfig, S3Config
@@ -65,11 +65,27 @@ def ingest_country(
     result = {"country": country, "dt": dt, "status": "failed", "list": 0, "details": 0}
 
     with HHClient(hh_cfg) as client:
+        # 0. Счётчики рынка — пишем ПЕРВЫМИ: дёшево и невосстановимо.
+        # Даже если сбор дальше упадёт, срез рынка за этот день сохранится.
+        try:
+            counters = client.fetch_counters(country)
+            counters["dt"] = dt
+            counters["collected_at"] = datetime.now(timezone.utc).isoformat()
+            storage.write_json(
+                RawStorage.key(SOURCE, country, dt, "market_counters", 0), counters
+            )
+            result["total"] = counters["vacancies_total"]
+            result["it_share"] = counters["it_share"]
+        except Exception as exc:  # noqa: BLE001 — счётчики не должны блокировать сбор
+            log.warning("%s: счётчики не собрались: %s", country, exc)
+
         # 1. FETCH
         items = client.fetch_country_list(country)
 
         # 2. WRITE RAW — до всякой валидации
-        storage.delete_prefix(partition)  # идемпотентность: перезаписываем партицию целиком
+        # Идемпотентность: чистим только списки, счётчики не трогаем.
+        # Очистка всей партиции стёрла бы market_counters, записанные выше.
+        storage.delete_prefix(f"{partition}vacancies_list-")
         for part, chunk in enumerate(_chunks(items, CHUNK_SIZE)):
             storage.write_json(
                 RawStorage.key(SOURCE, country, dt, "vacancies_list", part), chunk
@@ -90,6 +106,7 @@ def ingest_country(
 
             log.info("%s: деталей к загрузке %d", country, len(new_ids))
             details = client.fetch_details(new_ids)
+            storage.delete_prefix(f"{partition}vacancy_details-")
             for part, chunk in enumerate(_chunks(details, CHUNK_SIZE)):
                 storage.write_json(
                     RawStorage.key(SOURCE, country, dt, "vacancy_details", part), chunk

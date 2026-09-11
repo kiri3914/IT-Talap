@@ -144,6 +144,46 @@ class HHClient:
             )
         return items
 
+    def fetch_counters(self, country: str) -> dict:
+        """Счётчики рынка на сегодня: сколько всего вакансий и сколько по каждой роли.
+
+        Дёшево (26 запросов) и невосстановимо: общее число вакансий по стране
+        нигде не хранится, а доля IT во времени — метрика, которой ни у кого нет.
+        Плюс это основа проверки объёма из ТЗ §8.1 и витрины спроса.
+        """
+        area_id = self.resolve_area_id(COUNTRIES[country]["area_name"])
+        role_ids = self.resolve_it_role_ids()
+
+        self.stats.requests += 1
+        total = int(
+            self._http.get_json("/vacancies", params={"area": area_id, "per_page": 1})
+            .get("found", 0)
+        )
+
+        by_role: dict[str, int] = {}
+        for role_id in role_ids:
+            self.stats.requests += 1
+            by_role[role_id] = int(
+                self._http.get_json(
+                    "/vacancies",
+                    params={"area": area_id, "professional_role": role_id, "per_page": 1},
+                ).get("found", 0)
+            )
+
+        it_total = sum(by_role.values())  # у вакансии ровно одна роль — проверено 2026-09-12
+        log.info(
+            "%s: всего %d, IT %d (%.1f%%)",
+            country, total, it_total, 100 * it_total / total if total else 0,
+        )
+        return {
+            "country": country,
+            "area_id": area_id,
+            "vacancies_total": total,
+            "vacancies_it": it_total,
+            "it_share": round(it_total / total, 5) if total else None,
+            "by_role": by_role,
+        }
+
     def fetch_country_list(self, country: str) -> list[dict]:
         """Полная выдача IT-вакансий по стране на сегодня."""
         area_id = self.resolve_area_id(COUNTRIES[country]["area_name"])
