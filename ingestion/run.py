@@ -131,6 +131,10 @@ def main() -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
     )
+    # Библиотеки логируют каждый HTTP-запрос. При загрузке деталей это тысячи
+    # строк за запуск — в cron логи распухнут, а полезные сообщения утонут.
+    for noisy in ("httpx", "httpcore", "botocore", "boto3", "urllib3", "s3transfer"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
     s3_cfg = S3Config.from_env()
     hh_cfg = HHConfig.from_env()

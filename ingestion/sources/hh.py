@@ -175,7 +175,7 @@ class HHClient:
                 details.append(self._http.get_json(f"/vacancies/{vacancy_id}"))
             except Exception as exc:  # noqa: BLE001 — одна вакансия не должна ронять запуск
                 log.warning("деталь %s не получена: %s", vacancy_id, exc)
-            if num % 200 == 0:
+            if num % 100 == 0 or num == len(vacancy_ids):
                 log.info("детали: %d/%d", num, len(vacancy_ids))
         return details
 
