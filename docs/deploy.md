@@ -236,3 +236,62 @@ ssh -L 9011:localhost:9011 kiri@31.58.244.248
 разделил бы судьбу чужого стека: пересоздание того проекта, чистка volume или
 смена ключей ударят по нашей истории, которую нельзя собрать заново.
 Отдельный контейнер стоит ничего, а связанность убирает.
+
+
+---
+
+## PostgreSQL и загрузка сырья (Фаза 2)
+
+Порт 5442, а не 5432: на сервере 5432 занят постгресами других проектов.
+
+```bash
+cd ~/talap && git pull
+
+# пароль для базы
+openssl rand -base64 24
+nano .env          # PG_PASSWORD=...
+
+.venv/bin/pip install -e .          # добавился psycopg
+docker compose up -d postgres
+docker compose ps                   # ждём healthy
+
+.venv/bin/python -m ingestion.load_to_postgres
+```
+
+Загружает только те даты, которых ещё нет. `--full` перезаливает всё,
+`--dt 2026-09-12` — конкретную дату. Повторный запуск безопасен:
+идемпотентность через `ON CONFLICT DO UPDATE`.
+
+Проверить:
+
+```bash
+docker exec -it talap-postgres psql -U talap -d talap -c "
+  select dt, country, kind, count(*)
+  from raw_landing.hh_vacancies group by 1,2,3 order by 1,2,3;"
+```
+
+### Подключиться к базе с ноутбука
+
+```bash
+ssh -L 5442:localhost:5442 kiri@31.58.244.248
+# dbeaver / psql на 127.0.0.1:5442
+```
+
+### dbt
+
+```bash
+.venv/bin/pip install dbt-core dbt-postgres
+mkdir -p ~/.dbt && cp dbt/profiles.yml.example ~/.dbt/profiles.yml
+cd dbt && dbt deps && dbt run --select staging && dbt test --select staging
+```
+
+---
+
+## Что ещё не поставлено на расписание
+
+**Telegram** — код готов (`python -m ingestion.run_telegram`), но на cron
+не ставится, пока не прочитаны условия Telegram API. Это блокер
+из `docs/sources/telegram.md`.
+
+**Загрузка в Postgres** — имеет смысл ставить после dbt-моделей,
+пока запускается руками.

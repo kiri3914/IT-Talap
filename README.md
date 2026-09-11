@@ -29,13 +29,15 @@ Talap делает их публичными и проверяемыми.
 ## Архитектура
 
 ```
-ИСТОЧНИКИ  hh API ✅  ·  Telegram ✅  ·  hirehi ⬜
+ИСТОЧНИКИ  hh API ✅  ·  Telegram 🟡  ·  курсы валют ✅  ·  hirehi ⬜
      │  Python: httpx + backoff
      │  fetch → write_raw → validate → alert
      ▼
 RAW  MinIO / S3          ✅   неизменяемое сырьё, пишется ДО валидации
+     ▼  load_to_postgres
+LANDING  PostgreSQL      ✅   jsonb как есть, без разбора
      ▼  dbt
-STAGING  PostgreSQL      ⬜   типизация, нормализация, вырезание контактов
+STAGING  PostgreSQL      🟡   образец модели есть, остальное вручную
      ▼  dbt
 CORE  PostgreSQL         ⬜   SCD2, снапшоты, справочники, дедупликация
      ▼  dbt
@@ -74,6 +76,7 @@ bash scripts/check_env.sh
 | `python -m ingestion.run` | сбор hh по трём странам |
 | `python -m ingestion.run --dt 2026-09-12` | бэкфилл за дату |
 | `python -m ingestion.run_telegram` | сбор Telegram-каналов |
+| `python -m ingestion.load_to_postgres` | сырьё из бакета в Postgres |
 | `python scripts/show_raw.py` | что в бакете, есть ли пропущенные дни |
 | `python scripts/explore.py` | профиль данных: зарплаты, опыт, скиллы, компании |
 | `python scripts/salary_report.py` | медианы по профессиям и городам |
@@ -93,8 +96,26 @@ bash scripts/check_env.sh
 | [docs/deploy.md](docs/deploy.md) | развёртывание и эксплуатация |
 | [docs/data_notes.md](docs/data_notes.md) | наблюдения по сырым данным hh |
 | [docs/findings-01-first-data.md](docs/findings-01-first-data.md) | первый анализ, пересмотр витрин |
+| [docs/findings-02-telegram-rules.md](docs/findings-02-telegram-rules.md) | телеграм даёт зарплат больше, чем hh |
+| [docs/journal.md](docs/journal.md) | инженерный журнал |
+| [dbt/README.md](dbt/README.md) | что в каркасе, что пишется вручную |
 | [docs/sources/](docs/sources/) | разведка источников: 20+ площадок |
 | [docs/adr/](docs/adr/) | архитектурные решения |
+
+---
+
+## Что сделано и что дальше
+
+| | Статус |
+|---|---|
+| Сбор hh, три страны, автономно | ✅ |
+| Курсы валют из нацбанков | ✅ |
+| Telegram: парсер и извлечение полей | 🟡 код готов, ждёт проверки ToS |
+| Postgres + загрузчик сырья | ✅ код готов, поднять на сервере |
+| dbt staging | 🟡 образец есть |
+| dbt core: SCD2, снапшоты, дедупликация | ⬜ пишется вручную |
+| Копия raw в удалённый бакет | ⬜ **главный незакрытый риск** |
+| Airflow | ⬜ после того, как cron отработает неделю |
 
 ---
 
