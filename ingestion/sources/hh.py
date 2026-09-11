@@ -7,7 +7,7 @@
    рекурсивно делим окно дат публикации.
 2. Список не содержит полного описания. Детали — отдельный запрос на каждую вакансию,
    поэтому грузим их только для новых ID (дельта со вчера).
-3. hh.kz / hh.uz / hh.kg — не отдельные API. Один api.hh.ru, разные area и host.
+3. hh.kz / hh.uz / hh.kg — не отдельные API. Один api.hh.ru, география — через area.
 
 Коды area и professional_role НЕ хардкодятся: справочники живые, берём их из API.
 """
@@ -30,10 +30,13 @@ DEPTH_LIMIT = 2000
 MAX_SPLIT_DEPTH = 8
 IT_CATEGORY_MARKERS = ("информационные технологии", "information technology")
 
+# Параметр host НЕ используется: hh.kg — недопустимое значение
+# ("Invalid host argument", проверено 2026-09-11), а география
+# полностью задаётся area. host влиял бы только на домен в ссылках ответа.
 COUNTRIES: dict[str, dict[str, str]] = {
-    "kz": {"area_name": "Казахстан", "host": "hh.kz"},
-    "uz": {"area_name": "Узбекистан", "host": "hh.uz"},
-    "kg": {"area_name": "Кыргызстан", "host": "hh.kg"},
+    "kz": {"area_name": "Казахстан"},
+    "uz": {"area_name": "Узбекистан"},
+    "kg": {"area_name": "Кыргызстан"},
 }
 
 
@@ -143,8 +146,7 @@ class HHClient:
 
     def fetch_country_list(self, country: str) -> list[dict]:
         """Полная выдача IT-вакансий по стране на сегодня."""
-        meta = COUNTRIES[country]
-        area_id = self.resolve_area_id(meta["area_name"])
+        area_id = self.resolve_area_id(COUNTRIES[country]["area_name"])
         role_ids = self.resolve_it_role_ids()
         log.info("%s: area=%s, IT-ролей %d", country, area_id, len(role_ids))
 
@@ -154,7 +156,6 @@ class HHClient:
             params = {
                 "area": area_id,
                 "professional_role": role_id,
-                "host": meta["host"],
                 "order_by": "publication_time",
             }
             for item in self._collect_slice(params, f"{country}/role={role_id}", depth=0):
