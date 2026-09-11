@@ -1,0 +1,41 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: talap-minio
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?не задан в .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?не задан в .env}
+    ports:
+      - "127.0.0.1:9000:9000"   # только localhost: наружу не выставляем
+      - "127.0.0.1:9001:9001"   # консоль — через ssh -L 9001:localhost:9001
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Создаёт бакет при первом запуске и выключается
+  minio-init:
+    image: minio/mc:latest
+    container_name: talap-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?}
+      S3_BUCKET: ${S3_BUCKET:-talap-raw}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      mc mb --ignore-existing local/$$S3_BUCKET &&
+      mc version enable local/$$S3_BUCKET &&
+      echo 'бакет готов, версионирование включено'
+      "
+
+volumes:
+  minio_data:
