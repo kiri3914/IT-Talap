@@ -100,7 +100,10 @@ def parse_post(post: dict) -> dict:
         "published_at": post.get("published_at"),
         "views": post.get("views"),
         "country": country,
-        "hashtags": post.get("hashtags") or [],
+        # Хештеги извлекаем сами, если их не передали: полагаться на поле,
+        # которое заполняет вызывающий код, — тот же источник тихих ошибок,
+        # что и со страной. В продуктиве их ставит parse_page, в тестах нет.
+        "hashtags": post.get("hashtags") or re.findall(r"#(\w+)", text),
     }
 
     for field, pattern in _LABELED.items():

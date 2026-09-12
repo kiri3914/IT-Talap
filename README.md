@@ -85,6 +85,7 @@ bash scripts/check_env.sh
 | `python scripts/build_report.py` | HTML-отчёт, открывается двойным кликом |
 | `python scripts/verify_coverage.py` | не теряем ли вакансии |
 | `bash scripts/check_env.sh` | все ли переменные заданы |
+| `pytest tests/ -q` | тесты разбора данных |
 
 ---
 
