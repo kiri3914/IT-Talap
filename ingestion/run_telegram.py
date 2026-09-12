@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from ingestion.alerts import send as send_alert
 from ingestion.config import AlertConfig, HHConfig, S3Config
@@ -33,7 +33,7 @@ def ingest_channel(
     meta = CHANNELS.get(channel, {})
     for post in posts:
         post["country"] = meta.get("country")
-        post["collected_at"] = datetime.now(timezone.utc).isoformat()
+        post["collected_at"] = datetime.now(UTC).isoformat()
 
     prefix = f"raw/{SOURCE}/channel={channel}/dt={dt}/"
     storage.delete_prefix(prefix)

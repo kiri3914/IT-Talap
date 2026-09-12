@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import re
 import sys
@@ -104,7 +103,7 @@ def load_hh(conn: psycopg.Connection, storage: RawStorage, dt: str) -> dict:
 def load_telegram(conn: psycopg.Connection, storage: RawStorage, dt: str) -> int:
     total = 0
     with conn.cursor() as cur:
-        for key in storage.list_keys(f"raw/telegram/"):
+        for key in storage.list_keys("raw/telegram/"):
             if f"dt={dt}/" not in key:
                 continue
             rows = [

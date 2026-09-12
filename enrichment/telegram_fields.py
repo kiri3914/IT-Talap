@@ -16,7 +16,8 @@ from ingestion.sources.telegram import CHANNELS
 
 CURRENCY_ALIASES = {
     "kzt": "KZT", "тг": "KZT", "тенге": "KZT", "₸": "KZT",
-    "uzs": "UZS", "сум": "UZS", "сўм": "UZS", "so'm": "UZS", "so‘m": "UZS", "sum": "UZS",
+    "uzs": "UZS", "сум": "UZS", "сўм": "UZS",
+    "so'm": "UZS", "so‘m": "UZS", "sum": "UZS",
     "kgs": "KGS", "сом": "KGS",
     "usd": "USD", "$": "USD", "долл": "USD",
     "rub": "RUB", "руб": "RUB", "₽": "RUB",
@@ -34,7 +35,8 @@ _LABELED = {
 
 # «30000 - 70000 KGS в месяц», «От 150000 KGS в месяц» — шаблон findwork
 _RANGE_WITH_CURRENCY = re.compile(
-    r"(?:(?P<prefix>от|from)\s+)?(?P<a>\d[\d\s.,  ]{2,}\d)\s*(?:[-–—]\s*(?P<b>\d[\d\s.,  ]{2,}\d))?\s*"
+    r"(?:(?P<prefix>от|from)\s+)?(?P<a>\d[\d\s.,  ]{2,}\d)\s*"
+    r"(?:[-–—]\s*(?P<b>\d[\d\s.,  ]{2,}\d))?\s*"
     r"(?P<cur>KZT|UZS|KGS|USD|RUB|тг|тенге|сум|сўм|so'm|so‘m|сом|руб|₸|\$|₽)",
     re.I,
 )

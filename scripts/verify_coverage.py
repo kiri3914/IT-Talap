@@ -50,7 +50,10 @@ def main() -> int:
                     ("area", area), ("per_page", 1),
                     *[("professional_role", rid) for rid in roles],
                 ])
-                all_roles_found = r.json().get("found") if r.status_code == 200 else f"HTTP {r.status_code}"
+                all_roles_found = (
+                    r.json().get("found") if r.status_code == 200
+                    else f"HTTP {r.status_code}"
+                )
 
                 # 2. Сумма по ролям отдельно
                 per_role = {}
@@ -68,7 +71,8 @@ def main() -> int:
                     prefix = f"raw/hh/country={country}/dt={dt}/vacancies_list-"
                     ids = set()
                     for key in storage.list_keys(prefix):
-                        ids |= {str(i.get("id")) for i in (storage.read_json(key) or []) if i.get("id")}
+                        payload = storage.read_json(key) or []
+                        ids |= {str(i["id"]) for i in payload if i.get("id")}
                     collected = len(ids)
 
                 # 4. Вся выдача по стране без фильтра ролей
@@ -78,14 +82,16 @@ def main() -> int:
                 print(f"\n{'=' * 58}\n{meta['area_name']} (area={area})\n{'=' * 58}")
                 print(f"  всего вакансий в стране:          {country_total}")
                 print(f"  IT: все 25 ролей одним запросом:  {all_roles_found}")
-                print(f"  IT: сумма по ролям по отдельности:{total_sum:>6}  (пересечения посчитаны дважды)")
+                print(f"  IT: сумма по ролям по отдельности:{total_sum:>6}  "
+                      "(пересечения посчитаны дважды)")
                 print(f"  собрано и лежит в бакете:         {collected:>6}")
 
                 if isinstance(all_roles_found, int) and collected:
                     diff = all_roles_found - collected
                     pct = 100 * collected / all_roles_found if all_roles_found else 0
                     mark = "✓ полнота" if abs(diff) <= all_roles_found * 0.02 else "⚠ РАСХОЖДЕНИЕ"
-                    print(f"  покрытие:                         {pct:5.1f}%  {mark} (разница {diff:+})")
+                    print(f"  покрытие:                         {pct:5.1f}%  "
+                          f"{mark} (разница {diff:+})")
 
                 over = {k: v for k, v in per_role.items() if v > 2000}
                 if over:

@@ -106,7 +106,10 @@ def main() -> int:
     print(f"   указана:                {len(with_sal):5}  {pct(len(with_sal), total)}")
     print(f"   только в salary_range:  {len(only_range):5}  {pct(len(only_range), total)}")
     both = sum(1 for v in with_sal if (s := salary_of(v)) and s.get("from") and s.get("to"))
-    only_from = sum(1 for v in with_sal if (s := salary_of(v)) and s.get("from") and not s.get("to"))
+    only_from = sum(
+        1 for v in with_sal
+        if (s := salary_of(v)) and s.get("from") and not s.get("to")
+    )
     print(f"   полная вилка (от и до): {both:5}  {pct(both, total)}")
     print(f"   только «от»:            {only_from:5}  {pct(only_from, total)}")
 
@@ -116,7 +119,10 @@ def main() -> int:
     )
     print("\n2. ВАЛЮТЫ (среди вакансий с зарплатой)")
     for cur, n in currencies.most_common():
-        print(f"   {cur or '—':5} {n:5}  {pct(n, len(with_sal))}  {bar(n, len(with_sal))}")
+        print(
+            f"   {cur or '—':5} {n:5}  {pct(n, len(with_sal))}  "
+            f"{bar(n, len(with_sal))}"
+        )
 
     # 3. Опыт
     print("\n3. ОПЫТ")

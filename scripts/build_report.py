@@ -52,13 +52,14 @@ def bars(rows: list[tuple[str, int, float]], unit: str, width: int = 620) -> str
         return '<p class="empty">Нет групп, прошедших порог.</p>'
     top = max(v for _, _, v in rows) or 1
     row_h, label_w, pad = 26, 250, 8
-    out = [f'<svg viewBox="0 0 {width} {len(rows)*row_h + pad}" class="chart" '
+    out = [f'<svg viewBox="0 0 {width} {len(rows) * row_h + pad}" class="chart" '
            f'role="img" aria-label="Медианы по группам">']
     for i, (label, n, value) in enumerate(rows):
         y = i * row_h
         w = max(2, (value / top) * (width - label_w - 110))
         out.append(
-            f'<text x="{label_w - 8}" y="{y + 17}" class="lbl" text-anchor="end">{esc(label)}</text>'
+            f'<text x="{label_w - 8}" y="{y + 17}" class="lbl" '
+            f'text-anchor="end">{esc(label)}</text>'
             f'<rect x="{label_w}" y="{y + 5}" width="{w:.1f}" height="15" rx="2" class="bar"/>'
             f'<text x="{label_w + w + 8}" y="{y + 17}" class="val">{fmt(value)}'
             f'<tspan class="dim"> {esc(unit)} · n={n}</tspan></text>'

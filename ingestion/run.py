@@ -20,7 +20,7 @@ import argparse
 import logging
 import sys
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from ingestion.alerts import send as send_alert
 from ingestion.config import AlertConfig, HHConfig, S3Config
@@ -71,7 +71,7 @@ def ingest_country(
         try:
             counters = client.fetch_counters(country)
             counters["dt"] = dt
-            counters["collected_at"] = datetime.now(timezone.utc).isoformat()
+            counters["collected_at"] = datetime.now(UTC).isoformat()
             storage.write_json(
                 RawStorage.key(SOURCE, country, dt, "market_counters", 0), counters
             )
@@ -201,7 +201,9 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001 — падение одной страны не роняет запуск
             failed = True
             log.exception("%s: сбор упал", country)
-            results.append({"country": country, "dt": args.dt, "status": "failed", "error": str(exc)})
+            results.append(
+                {"country": country, "dt": args.dt, "status": "failed", "error": str(exc)}
+            )
             send_alert(alerts, f"🔴 Talap / {SOURCE} / {country} {args.dt}\nСбор упал: {exc}")
 
     log.info("итог: %s", results)

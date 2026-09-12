@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установка
+        run: pip install -e ".[dev]"
+
+      - name: Линтер
+        run: ruff check .
+
+      - name: Тесты
+        run: pytest tests/ -q
+
+      # Секрет в истории git — навсегда, даже если удалить файл потом.
+      # Дешевле поймать в PR, чем перевыпускать все ключи.
+      - name: Секреты не в индексе
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$'; then
+            echo "::error::.env попал в репозиторий"
+            exit 1
+          fi
+          if git grep -nE '(secret|password|token)\s*=\s*["'"'"'][A-Za-z0-9/+_-]{16,}' \
+               -- '*.py' '*.yml' '*.sh'; then
+            echo "::error::похоже на захардкоженный секрет"
+            exit 1
+          fi
+          echo "секретов не найдено"

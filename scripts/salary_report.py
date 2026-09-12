@@ -21,8 +21,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ingestion.config import S3Config  # noqa: E402
 from enrichment.grade import detect as detect_grade  # noqa: E402
+from ingestion.config import S3Config  # noqa: E402
 from ingestion.storage.s3 import RawStorage  # noqa: E402
 
 MIN_COUNT = 5  # ТЗ §5.4: ниже — статистически бессмысленно
@@ -111,7 +111,8 @@ def main() -> int:
     if args.usd:
         payload = storage.read_json(f"raw/currency/dt={dt}/rates-000.json.gz")
         if not payload:
-            print(f"\nнет курсов за {dt}. Соберите: python -m ingestion.run --dt {dt} --skip-details")
+            print(f"\nнет курсов за {dt}. Соберите их отдельно:")
+            print(f"  python -m ingestion.backfill_rates --dt {dt}")
             return 1
         fx = payload["rates"]
         args.currency = "USD"
@@ -167,7 +168,8 @@ def main() -> int:
             subset = [r for r in rows if r["gross"] is flag]
             if len(subset) < args.min_count:
                 continue
-            print(f"\n{'#' * 88}\n# {label.upper()}  ({len(subset)} вакансий)\n{'#' * 88}")
+            header = f"# {label.upper()}  ({len(subset)} вакансий)"
+            print(f"\n{'#' * 88}\n{header}\n{'#' * 88}")
             _render(subset, args)
         print(f"\n{'=' * 88}")
         print("gross и net считаются отдельно: разница около 10%, смешивать их")

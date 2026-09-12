@@ -5,7 +5,8 @@
 вернуть исходный снимок — версии объектов.
 
     python scripts/restore_partition.py --prefix raw/hh/country=kz/dt=2026-09-11/ --list
-    python scripts/restore_partition.py --prefix raw/hh/country=kz/dt=2026-09-11/ --before 2026-09-12T00:00:00
+    python scripts/restore_partition.py \\
+        --prefix raw/hh/country=kz/dt=2026-09-11/ --before 2026-09-11T18:00:00
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -88,7 +89,7 @@ def main() -> int:
 
     cutoff = datetime.fromisoformat(args.before)
     if cutoff.tzinfo is None:
-        cutoff = cutoff.replace(tzinfo=timezone.utc)
+        cutoff = cutoff.replace(tzinfo=UTC)
     print(f"порог: {cutoff:%Y-%m-%d %H:%M:%S %Z}\n")
     restored = skipped = 0
     for key, vs in sorted(by_key.items()):

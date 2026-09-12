@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ingestion.config import HHConfig  # noqa: E402
-from ingestion.sources.hh import DEPTH_LIMIT, PER_PAGE, COUNTRIES, HHClient  # noqa: E402
+from ingestion.sources.hh import COUNTRIES, DEPTH_LIMIT, PER_PAGE, HHClient  # noqa: E402
 
 log = logging.getLogger("talap.depth")
 
@@ -94,9 +94,9 @@ def main() -> int:
             print(f"  API отдаёт максимум ~{real} результатов")
             if real != DEPTH_LIMIT:
                 print(f"  ⚠ КОНСТАНТА НЕВЕРНА: в коде {DEPTH_LIMIT}, по факту {real}")
-                print(f"    поправить DEPTH_LIMIT в ingestion/sources/hh.py")
+                print("    поправить DEPTH_LIMIT в ingestion/sources/hh.py")
             else:
-                print(f"  ✓ константа подтверждена")
+                print("  ✓ константа подтверждена")
 
         if args.collect:
             print("\nПолный сбор с нарезкой…")
