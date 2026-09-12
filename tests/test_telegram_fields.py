@@ -119,3 +119,60 @@ class TestParsePost:
         got = parse_post({"channel": "workitkz", "post_id": "workitkz/1", "text": ""})
         assert got["source_id"] == "workitkz/1"
         assert "salary_from" not in got
+
+
+class TestСвободныйФормат:
+    """devkz_jobs и uzdev_jobs не размечают поля: должность — первая
+    содержательная строка. Правила подняли покрытие с 15% до 100%."""
+
+    def _parse(self, text: str, channel: str = "devkz_jobs") -> dict:
+        return parse_post({"channel": channel, "post_id": f"{channel}/1", "text": text})
+
+    def test_должность_первой_строкой(self):
+        got = self._parse("#астана\n\nBI-разработчик (Apache Superset + AI)\n"
+                          "Компания: НЦЭЛС и МИ\nОбязанности: ...")
+        assert got["title"] == "BI-разработчик (Apache Superset + AI)"
+        assert got["company"] == "НЦЭЛС и МИ"
+
+    def test_компания_двоеточие_должность(self):
+        got = self._parse("#алматы #python\n\n"
+                          "ITCBootcamp Алматы: Python разработчик (на позицию ментора)\n"
+                          "Требования: опыт от 2 лет")
+        assert got["title"] == "Python разработчик (на позицию ментора)"
+        assert got["company"] == "ITCBootcamp Алматы"
+
+    @pytest.mark.parametrize("line,expected", [
+        ("We're Hiring: DevOps-инженер (AWS)", "DevOps-инженер (AWS)"),
+        ("Компания ищет Backend Developer", "Backend Developer"),
+        ("Требуется: Системный аналитик", "Системный аналитик"),
+    ])
+    def test_префиксы_отбрасываются(self, line, expected):
+        got = self._parse(f"#devops\n{line}\nОбязанности: ...")
+        assert got["title"] == expected
+
+    def test_строка_из_хештегов_не_заголовок(self):
+        got = self._parse("#астана #csharp #middle\n\nJava разработчик\nтребования: ...")
+        assert got["title"] == "Java разработчик"
+
+    def test_не_вакансия_отсеивается(self):
+        """В каналах попадаются новости — у них не должно быть должности."""
+        got = self._parse("Yandex Uzbekistan получил сертификат Great Place to Work.\n"
+                          "Для специалистов эта новость интереснее самой награды.")
+        assert got["is_vacancy"] is False
+        assert "title" not in got
+
+    def test_вакансия_распознаётся_по_маркерам(self):
+        assert self._parse("#вакансия\nPython Developer")["is_vacancy"] is True
+        assert self._parse("Ищем Backend Developer")["is_vacancy"] is True
+        assert self._parse("Обязанности: писать код")["is_vacancy"] is True
+
+    def test_узбекская_зарплата(self):
+        got = self._parse("#support\nTechnical Support\nMaosh: 2 000 000 – 3 000 000 so'm",
+                          channel="uzdev_jobs")
+        assert got["salary_from"] == 2000000
+        assert got["currency"] == "UZS"
+
+    def test_размеченное_поле_не_становится_заголовком(self):
+        got = self._parse("#алматы\nКомпания: ТОО Рога\nPython разработчик\nЗП: 500000")
+        assert got["title"] == "Python разработчик"
+        assert got["company"] == "ТОО Рога"

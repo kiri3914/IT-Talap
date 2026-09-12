@@ -16,7 +16,7 @@ from ingestion.sources.telegram import CHANNELS
 
 CURRENCY_ALIASES = {
     "kzt": "KZT", "тг": "KZT", "тенге": "KZT", "₸": "KZT",
-    "uzs": "UZS", "сум": "UZS", "сўм": "UZS",
+    "uzs": "UZS", "сум": "UZS", "сўм": "UZS", "so'm": "UZS", "so‘m": "UZS", "sum": "UZS",
     "kgs": "KGS", "сом": "KGS",
     "usd": "USD", "$": "USD", "долл": "USD",
     "rub": "RUB", "руб": "RUB", "₽": "RUB",
@@ -28,13 +28,14 @@ _LABELED = {
     "company": r"(?:компания|company|работодатель)\s*:\s*(.+)",
     "city": r"(?:город|city|локация|location)\s*:\s*(.+)",
     "employment": r"(?:занятость|формат|график|тип)\s*:\s*(.+)",
-    "salary_line": r"(?:оплата|зарплата|зп|вилка|salary|доход)\s*:\s*(.+)",
+    # maosh / ish haqi — узбекский, встречается в uzdev_jobs
+    "salary_line": r"(?:оплата|зарплата|зп|вилка|salary|доход|maosh|маош|ish\s*haqi)\s*:?\s*(.+)",
 }
 
 # «30000 - 70000 KGS в месяц», «От 150000 KGS в месяц» — шаблон findwork
 _RANGE_WITH_CURRENCY = re.compile(
     r"(?:(?P<prefix>от|from)\s+)?(?P<a>\d[\d\s.,  ]{2,}\d)\s*(?:[-–—]\s*(?P<b>\d[\d\s.,  ]{2,}\d))?\s*"
-    r"(?P<cur>KZT|UZS|KGS|USD|RUB|тг|тенге|сум|сўм|сом|руб|₸|\$|₽)",
+    r"(?P<cur>KZT|UZS|KGS|USD|RUB|тг|тенге|сум|сўм|so'm|so‘m|сом|руб|₸|\$|₽)",
     re.I,
 )
 # «Компания: Куратор» у findwork идёт как «EDU BRIDGE: Куратор по поступлению»
@@ -86,6 +87,61 @@ def parse_salary(text: str, default_currency: str | None = None) -> dict:
     return {"salary_from": lo, "salary_to": hi, "currency": cur}
 
 
+# Пост не обязательно вакансия: в каналах попадаются новости и анонсы
+_VACANCY_MARKERS = re.compile(
+    r"(#вакансия|ищем|ищет|требуется|we'?re hiring|hiring|открыта вакансия|"
+    r"в команду|обязанности|требования|компания\s*:|зарплата|оплата|зп\s*:|"
+    r"maosh|вакансия|позиция|talab qilinadi)",
+    re.I,
+)
+
+# «We're Hiring: X», «Компания ищет X», «ищем в команду: X» — шелуха перед должностью
+_TITLE_PREFIX = re.compile(
+    r"^.*?(?:we'?re hiring|hiring|ищ[еу]\w*(?:\s+в\s+команду)?|"
+    r"открыта вакансия|требуется|в команду)\s*:?\s*",
+    re.I,
+)
+# Строка целиком из хештегов и эмодзи — не заголовок
+_ONLY_TAGS = re.compile(r"^[\s#\w]*$")
+
+
+def _title_from_first_line(text: str) -> tuple[str | None, str | None]:
+    """Должность (и, если видно, компания) из первой содержательной строки.
+
+    В devkz_jobs и uzdev_jobs размеченных полей нет: заголовок — просто
+    первая строка после хештегов. Встречаются три формы:
+        «Python разработчик»                    -> должность
+        «ITCBootcamp Алматы: Python разработчик» -> компания: должность
+        «We're Hiring: DevOps-инженер (AWS)»     -> префикс + должность
+    """
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") and _ONLY_TAGS.match(line):
+            continue
+        line = re.sub(r"#\w+", "", line).strip(" \t—-–·•|")
+        if len(line) < 4:
+            continue
+        # Размеченное поле разберут правила выше, здесь оно только помешает
+        if re.match(r"(?i)^(компания|город|занятость|тип|оплата|зп|зарплата)\s*:", line):
+            continue
+
+        company = None
+        if stripped := _TITLE_PREFIX.sub("", line):
+            if stripped != line and len(stripped) >= 4:
+                line = stripped
+            elif ":" in line:
+                left, right = line.split(":", 1)
+                # «Компания: Должность» — только если слева похоже на название,
+                # а не на начало предложения
+                if 2 < len(left.strip()) < 45 and len(right.strip()) >= 4:
+                    company, line = left.strip(" «»\"'"), right.strip()
+
+        line = line.strip(" «»\"'.,;")
+        if 4 <= len(line) <= 130:
+            return line, company
+    return None, None
+
+
 def parse_post(post: dict) -> dict:
     """Пост -> поля вакансии. Ничего не выдумывает: не нашли — None."""
     text = post.get("text") or ""
@@ -111,6 +167,8 @@ def parse_post(post: dict) -> dict:
         if m:
             out[field] = m.group(1).strip().strip(".,;")
 
+    out["is_vacancy"] = bool(_VACANCY_MARKERS.search(text))
+
     # findwork: «КОМПАНИЯ: Должность» первой строкой + внешний стабильный ID
     if channel == "findwork":
         head = _FINDWORK_HEAD.match(text.strip())
@@ -119,6 +177,15 @@ def parse_post(post: dict) -> dict:
             out.setdefault("title", head.group("title").strip())
         if ext := _FINDWORK_ID.search(text):
             out["external_id"] = ext.group(1)
+
+    # Свободный формат: должность — первая содержательная строка.
+    # Так пишут devkz_jobs и uzdev_jobs, где размеченных полей нет.
+    if not out.get("title") and out["is_vacancy"]:
+        title, company = _title_from_first_line(text)
+        if title:
+            out["title"] = title
+        if company and not out.get("company"):
+            out["company"] = company
 
     # Зарплата: из размеченной строки (там валюту можно подразумевать
     # по стране), иначе из всего текста — но уже только с явной валютой
