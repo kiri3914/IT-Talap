@@ -26,7 +26,7 @@ from ingestion.alerts import send as send_alert
 from ingestion.config import AlertConfig, HHConfig, S3Config
 from ingestion.schemas.hh import check_list_items
 from ingestion.sources.currency import fetch_rates
-from ingestion.sources.hh import COUNTRIES, HHClient, today
+from ingestion.sources.hh import COUNTRIES, DEFAULT_COUNTRIES, HHClient, today
 from ingestion.storage.s3 import RawStorage
 
 log = logging.getLogger("talap.ingest")
@@ -188,7 +188,7 @@ def main() -> int:
         log.exception("курсы не собрались")
         send_alert(alerts, f"⚠️ Talap / курсы {args.dt}\nНе собрались: {exc}")
 
-    countries = args.country or sorted(COUNTRIES)
+    countries = args.country or sorted(DEFAULT_COUNTRIES)
     results: list[dict] = []
     failed = False
 

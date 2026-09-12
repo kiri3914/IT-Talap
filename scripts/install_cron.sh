@@ -5,23 +5,32 @@ set -euo pipefail
 
 APP_DIR="$HOME/talap"
 LOG_DIR="$HOME/logs"
-LINE="0 3 * * * cd $APP_DIR && $APP_DIR/.venv/bin/python -m ingestion.run >> $LOG_DIR/talap-\$(date +\\%Y-\\%m).log 2>&1"
+LOG="$LOG_DIR/talap-\$(date +\\%Y-\\%m).log"
+# Сбор в 03:00, загрузка в Postgres в 03:40 — отдельной строкой, чтобы
+# падение загрузки не выглядело как падение сбора. Сбор важнее: сырьё,
+# не собранное сегодня, не собирается никогда, а загрузить можно потом.
+LINE="0 3 * * * cd $APP_DIR && $APP_DIR/.venv/bin/python -m ingestion.run >> $LOG 2>&1"
+LINE_LOAD="40 3 * * * cd $APP_DIR && $APP_DIR/.venv/bin/python -m ingestion.load_to_postgres >> $LOG 2>&1"
 
 mkdir -p "$LOG_DIR"
 
 if crontab -l 2>/dev/null | grep -q "ingestion.run"; then
-    echo "Задание уже стоит:"
-    crontab -l | grep "ingestion.run"
+    echo "Задания уже стоят:"
+    crontab -l | grep -E "ingestion\.(run|load_to_postgres)"
+    echo ""
+    echo "Чтобы добавить загрузку в Postgres к существующему сбору:"
+    echo "  crontab -e   и дописать строку:"
+    echo "  40 3 * * * cd $APP_DIR && $APP_DIR/.venv/bin/python -m ingestion.load_to_postgres >> $LOG_DIR/talap-\$(date +\\%Y-\\%m).log 2>&1"
     exit 0
 fi
 
 # `|| true` обязателен: без него `crontab -l` на пустом crontab возвращает 1,
 # при set -e подоболочка умирает до echo, и crontab затирается пустым вводом.
-( crontab -l 2>/dev/null || true; echo "$LINE" ) | crontab -
+( crontab -l 2>/dev/null || true; echo "$LINE"; echo "$LINE_LOAD" ) | crontab -
 
 if crontab -l 2>/dev/null | grep -q "ingestion.run"; then
     echo "Поставлено:"
-    crontab -l | grep "ingestion.run"
+    crontab -l | grep -E "ingestion\.(run|load_to_postgres)"
 else
     echo "ОШИБКА: задание не появилось в crontab"
     exit 1

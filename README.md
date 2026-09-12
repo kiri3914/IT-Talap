@@ -84,6 +84,7 @@ bash scripts/check_env.sh
 | `python scripts/market_trend.py` | динамика доли IT в рынке |
 | `python scripts/build_report.py` | HTML-отчёт, открывается двойным кликом |
 | `python scripts/verify_coverage.py` | не теряем ли вакансии |
+| `python scripts/check_depth_limit.py` | проверить нарезку на объёме России |
 | `bash scripts/check_env.sh` | все ли переменные заданы |
 | `pytest tests/ -q` | тесты разбора данных |
 
