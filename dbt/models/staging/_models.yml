@@ -20,3 +20,31 @@ models:
           - dbt_utils.expression_is_true:
               expression: "<= salary_to or salary_to is null"
               config: {severity: warn}
+
+  - name: stg_market_counters
+    description: Счётчики рынка по странам на дату.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [dt, country]
+
+  - name: stg_currency_rates
+    description: Курсы к USD. RUR приведён к RUB.
+    columns:
+      - name: rate
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [dt, currency]
+
+  - name: stg_telegram_posts
+    description: >
+      Посты телеграм-каналов. Извлечение полей из текста — в
+      enrichment/telegram_fields.py, там правила покрыты тестами.
+    columns:
+      - name: source_id
+        tests: [unique, not_null]
+      - name: views
+        description: >
+          Счётчик просмотров поста. Это НЕ отклики: просмотр в ленте
+          не означает даже прочтения. Единственный доступный сигнал
+          интереса во всём проекте — но подавать его как отклики нельзя.

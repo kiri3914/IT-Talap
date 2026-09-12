@@ -20,7 +20,7 @@ include = ["ingestion*", "enrichment*"]
 ingestion = ["sql/*.sql"]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.5", "pytest>=8.0"]
+dev = ["ruff>=0.5", "pytest>=8.0", "sqlglot>=25.0"]
 
 [tool.ruff]
 line-length = 100

@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: mart_market_share
+    description: >
+      Доля IT во всех вакансиях страны по дням, с изменением ко вчера
+      и скользящим средним за 7 дней.
+
+      На 2026-09-12: Казахстан 5.5%, Узбекистан 9.8%, Кыргызстан 6.4%.
+      Узбекистан вдвое «айтишнее» Казахстана при втрое меньшем рынке.
+    columns:
+      - name: dt
+        tests: [not_null]
+      - name: country
+        tests:
+          - not_null
+          - accepted_values: {values: ["kz", "uz", "kg"]}
+      - name: it_share
+        description: Доля IT-вакансий во всех вакансиях страны.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              config: {severity: error}
+      - name: is_volume_anomaly
+        description: >
+          Отклонение объёма больше 40% от скользящего среднего за 7 дней —
+          проверка из ТЗ §8.1. Обычно означает не изменение рынка,
+          а проблему со сбором.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [dt, country]
