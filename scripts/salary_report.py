@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import argparse
-import re
 import statistics
 import sys
 from collections import defaultdict
@@ -32,6 +31,7 @@ from enrichment.vacancy import (  # noqa: E402
 )
 from ingestion.config import S3Config  # noqa: E402
 from ingestion.storage.s3 import RawStorage  # noqa: E402
+from scripts._data import available_dates, coverage, load_active  # noqa: E402
 
 MIN_COUNT = 5  # ТЗ §5.4: ниже — статистически бессмысленно
 
@@ -40,15 +40,6 @@ MIN_COUNT = 5  # ТЗ §5.4: ниже — статистически бессм�
 MAJOR_CITIES = {"Алматы", "Астана", "Ташкент", "Бишкек"}
 COUNTRY_NAMES = {"kz": "Казахстана", "uz": "Узбекистана", "kg": "Кыргызстана"}
 
-def load(storage: RawStorage, dt: str) -> list[dict]:
-    out = []
-    for country in ("kz", "uz", "kg"):
-        prefix = f"raw/hh/country={country}/dt={dt}/vacancy_details-"
-        for key in sorted(storage.list_keys(prefix)):
-            for v in storage.read_json(key) or []:
-                v["_country"] = country
-                out.append(v)
-    return out
 
 
 def grade_of(v: dict) -> str:
@@ -113,15 +104,18 @@ def main() -> int:
     args = parser.parse_args()
 
     storage = RawStorage(S3Config.from_env())
-    dates = sorted({m.group(1) for k in storage.list_keys("raw/hh/")
-                    if (m := re.search(r"dt=([\d-]+)", k))})
+    dates = available_dates(storage)
     if not dates:
         print("в бакете пусто")
         return 1
     dt = args.dt or dates[-1]
 
-    vacancies = load(storage, dt)
-    print(f"дата: {dt}, всего вакансий: {len(vacancies)}")
+    vacancies = load_active(storage, dt)
+    total, with_details = coverage(storage, dt)
+    print(f"дата: {dt}, активных вакансий: {total}, из них с деталями: {with_details}")
+    if with_details < total:
+        print(f"  ⚠ без деталей: {total - with_details} — "
+              f"появились до первой полной загрузки")
 
     fx: dict[str, float] = {}
     if args.usd:

@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from enrichment.vacancy import is_monthly, salary_of  # noqa: E402
 from ingestion.config import S3Config  # noqa: E402
 from ingestion.storage.s3 import RawStorage  # noqa: E402
+from scripts._data import available_dates, load_active  # noqa: E402
 
 EXPERIENCE_LABELS = {
     "noExperience": "без опыта",
@@ -46,12 +47,6 @@ def bar(value: int, total: int, width: int = 28) -> str:
     return "█" * filled + "·" * (width - filled)
 
 
-def load_details(storage: RawStorage, country: str, dt: str) -> list[dict]:
-    prefix = f"raw/hh/country={country}/dt={dt}/vacancy_details-"
-    out: list[dict] = []
-    for key in sorted(storage.list_keys(prefix)):
-        out.extend(storage.read_json(key) or [])
-    return out
 
 
 
@@ -72,23 +67,19 @@ def main() -> int:
 
     storage = RawStorage(S3Config.from_env())
 
-    dates = sorted({m.group(1) for k in storage.list_keys("raw/hh/")
-                    if (m := re.search(r"dt=([\d-]+)", k))})
+    dates = available_dates(storage)
     if not dates:
         print("в бакете пусто")
         return 1
     dt = args.dt or dates[-1]
-    countries = args.country or ["kz", "uz", "kg"]
+    countries = tuple(args.country or ["kz", "uz", "kg"])
 
-    vacancies: list[dict] = []
     print(f"дата: {dt}\n")
+    vacancies = load_active(storage, dt, countries)
     for country in countries:
-        part = load_details(storage, country, dt)
-        if part:
-            for v in part:
-                v["_country"] = country
-            vacancies.extend(part)
-            print(f"  {country}: {len(part)} вакансий")
+        n = sum(1 for v in vacancies if v.get("_country") == country)
+        if n:
+            print(f"  {country}: {n} вакансий")
     if not vacancies:
         print("нет данных за эту дату")
         return 1

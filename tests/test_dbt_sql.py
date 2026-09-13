@@ -38,3 +38,9 @@ def test_ссылки_только_через_ref_и_source(path: Path):
 
 def test_модели_вообще_есть():
     assert MODELS, "не найдено ни одной модели"
+
+
+def test_scripts_являются_пакетом():
+    """scripts/_data.py импортируется как scripts._data — без __init__
+    относительный импорт в скриптах ломается."""
+    assert (Path(__file__).parent.parent / "scripts" / "__init__.py").exists()
