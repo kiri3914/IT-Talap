@@ -70,3 +70,28 @@ def test_скрипт_компилируется(name: str):
     )
     if "F821" in result.stdout:
         raise AssertionError(f"неразрешённые имена в {name}.py:\n{result.stdout}")
+
+
+def test_нет_голого_coalesce_по_jsonb():
+    """coalesce(payload -> 'a', payload -> 'b') не работает: jsonb 'null'
+    не является SQL NULL, поэтому второй аргумент недостижим.
+    Нашлось на живых данных: запрос показывал 100% раскрытия зарплат."""
+    import re as _re
+    for path in MODELS:
+        sql = path.read_text(encoding="utf-8")
+        for m in _re.finditer(r"coalesce\(\s*([^)]*?->[^)]*?)\)", sql, _re.S):
+            fragment = m.group(1)
+            if "->" in fragment and "nullif" not in fragment and "->>" not in fragment:
+                raise AssertionError(
+                    f"{path.name}: coalesce по jsonb без nullif(..., 'null'::jsonb):\n"
+                    f"  {fragment.strip()[:160]}"
+                )
+
+
+def test_нет_is_not_null_по_jsonb_объекту():
+    """`payload -> 'salary' is not null` истинно и для JSON-null."""
+    import re as _re
+    for path in MODELS:
+        sql = path.read_text(encoding="utf-8")
+        bad = _re.findall(r"payload\s*->\s*'\w+'\s+is\s+not\s+null", sql, _re.I)
+        assert not bad, f"{path.name}: {bad} — использовать jsonb_typeof(...) = 'object'"

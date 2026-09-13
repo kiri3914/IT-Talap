@@ -6,6 +6,11 @@
 -- Остальные staging-модели и весь core пишутся вручную — это целевые
 -- компетенции проекта (ТЗ §12.1), а не то, что стоит делегировать.
 
+-- ВАЖНО про jsonb: `payload -> 'salary'` при "salary": null возвращает
+-- JSON-null, а не SQL NULL. Поэтому coalesce(salary, salary_range) вернул бы
+-- JSON-null и НИКОГДА не дошёл бы до salary_range, а `is not null` был бы
+-- истинным для пустой зарплаты. Отсюда nullif(..., 'null'::jsonb) всюду.
+
 with details as (
     select
         source_id,
@@ -31,16 +36,24 @@ select
 
     -- У hh два поля зарплаты, оба могут быть null (docs/data_notes.md §2).
     -- Читаем оба: если смотреть только на salary, часть вилок теряется.
-    coalesce(payload -> 'salary', payload -> 'salary_range')      as salary_raw,
-    (coalesce(payload -> 'salary', payload -> 'salary_range') ->> 'from')::numeric
+    coalesce(
+        nullif(payload -> 'salary', 'null'::jsonb),
+        nullif(payload -> 'salary_range', 'null'::jsonb)
+    )                                               as salary_raw,
+
+    (coalesce(nullif(payload -> 'salary', 'null'::jsonb),
+              nullif(payload -> 'salary_range', 'null'::jsonb)) ->> 'from')::numeric
                                                     as salary_from,
-    (coalesce(payload -> 'salary', payload -> 'salary_range') ->> 'to')::numeric
+    (coalesce(nullif(payload -> 'salary', 'null'::jsonb),
+              nullif(payload -> 'salary_range', 'null'::jsonb)) ->> 'to')::numeric
                                                     as salary_to,
     -- hh отдаёт код RUR, а не RUB — приводим, иначе не сойдётся джойн с курсами
     nullif(replace(
-        coalesce(payload -> 'salary', payload -> 'salary_range') ->> 'currency',
+        coalesce(nullif(payload -> 'salary', 'null'::jsonb),
+                 nullif(payload -> 'salary_range', 'null'::jsonb)) ->> 'currency',
         'RUR', 'RUB'), '')                          as salary_currency,
-    (coalesce(payload -> 'salary', payload -> 'salary_range') ->> 'gross')::boolean
+    (coalesce(nullif(payload -> 'salary', 'null'::jsonb),
+              nullif(payload -> 'salary_range', 'null'::jsonb)) ->> 'gross')::boolean
                                                     as salary_gross,
 
     -- За какой период указана сумма. Есть только в salary_range.
@@ -48,8 +61,8 @@ select
     -- в данных на 2026-09-14 таких 25 из 1301 (SERVICE, SHIFT, HOUR,
     -- FLY_IN_FLY_OUT). Вакансии без salary_range считаем месячными —
     -- так было до появления поля.
-    coalesce(payload -> 'salary_range' -> 'mode' ->> 'id', 'MONTH')
-                                                    as salary_mode,
+    coalesce(nullif(payload -> 'salary_range', 'null'::jsonb)
+                 -> 'mode' ->> 'id', 'MONTH')       as salary_mode,
 
     -- Грейда в данных нет, есть только опыт. По ТЗ §5.4 опыт — основная ось
     (payload -> 'experience' ->> 'id')              as experience_id,
@@ -66,9 +79,9 @@ select
 
     -- Город публикации и город работы расходятся у релокационных вакансий:
     -- area = Астана, address.city = Лимасол (findings-03)
-    (payload -> 'address' ->> 'city')               as work_city,
-    (payload -> 'address' ->> 'lat')::numeric       as work_lat,
-    (payload -> 'address' ->> 'lng')::numeric       as work_lng,
+    (nullif(payload -> 'address', 'null'::jsonb) ->> 'city')   as work_city,
+    (nullif(payload -> 'address', 'null'::jsonb) ->> 'lat')::numeric  as work_lat,
+    (nullif(payload -> 'address', 'null'::jsonb) ->> 'lng')::numeric  as work_lng,
 
     (payload ->> 'published_at')::timestamptz       as published_at,
     -- Не меняется при перепубликации — кандидат в признак для метрики
