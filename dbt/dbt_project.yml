@@ -15,9 +15,11 @@ models:
     staging:
       +schema: staging
       +materialized: view      # staging дёшево пересчитать, храним как view
-    core:
-      +schema: core
-      +materialized: table
+    # Раскомментировать, когда появятся модели в models/core/.
+    # Пустой каталог даёт предупреждение о неиспользуемой конфигурации.
+    # core:
+    #   +schema: core
+    #   +materialized: table
     marts:
       +schema: marts
       +materialized: table

@@ -14,13 +14,14 @@ models:
       - name: country
         tests:
           - not_null
-          - accepted_values: {values: ["kz", "uz", "kg"]}
+          - accepted_values: {arguments: {values: ["kz", "uz", "kg"]}}
       - name: it_share
         description: Доля IT-вакансий во всех вакансиях страны.
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 1
+              arguments:
+                min_value: 0
+                max_value: 1
               config: {severity: error}
       - name: is_volume_anomaly
         description: >
@@ -29,4 +30,5 @@ models:
           а проблему со сбором.
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [dt, country]
+          arguments:
+            combination_of_columns: [dt, country]

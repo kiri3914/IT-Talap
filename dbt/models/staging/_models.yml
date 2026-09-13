@@ -13,12 +13,14 @@ models:
         description: RUR приведён к RUB.
         tests:
           - accepted_values:
-              values: ["KZT", "UZS", "KGS", "USD", "RUB", "EUR"]
+              arguments:
+                values: ["KZT", "UZS", "KGS", "USD", "RUB", "EUR"]
               config: {severity: warn}
       - name: salary_from
         tests:
           - dbt_utils.expression_is_true:
-              expression: "<= salary_to or salary_to is null"
+              arguments:
+                expression: "<= salary_to or salary_to is null"
               config: {severity: warn}
       - name: salary_mode
         description: >
@@ -28,7 +30,8 @@ models:
           FLY_IN_FLY_OUT 3, HOUR 1.
         tests:
           - accepted_values:
-              values: ["MONTH", "SERVICE", "SHIFT", "HOUR", "FLY_IN_FLY_OUT", "DAY", "WEEK"]
+              arguments:
+                values: ["MONTH", "SERVICE", "SHIFT", "HOUR", "FLY_IN_FLY_OUT", "DAY", "WEEK"]
               config: {severity: warn}
       - name: work_format
         description: Формат работы из источника — REMOTE / HYBRID / ON_SITE / FIELD_WORK.
@@ -41,7 +44,8 @@ models:
     description: Счётчики рынка по странам на дату.
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [dt, country]
+          arguments:
+            combination_of_columns: [dt, country]
 
   - name: stg_currency_rates
     description: Курсы к USD. RUR приведён к RUB.
@@ -50,7 +54,8 @@ models:
         tests: [not_null]
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [dt, currency]
+          arguments:
+            combination_of_columns: [dt, currency]
 
   - name: stg_telegram_posts
     description: >

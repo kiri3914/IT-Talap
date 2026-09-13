@@ -20,7 +20,8 @@ seeds:
       - name: family
         tests:
           - accepted_values:
-              values: [development, data, infrastructure, support, design, management]
+              arguments:
+                values: [development, data, infrastructure, support, design, management]
 
   - name: skill_categories
     description: >
@@ -37,4 +38,5 @@ seeds:
       - name: category
         tests:
           - accepted_values:
-              values: [language, framework, database, cloud, tool, platform, soft, domain, other]
+              arguments:
+                values: [language, framework, database, cloud, tool, platform, soft, domain, other]
