@@ -49,6 +49,21 @@ def grade_of(v: dict) -> str:
     return grade or "—"
 
 
+# Зарплата сравнима только внутри одного режима выплаты.
+# В данных на 2026-09-14: MONTH 1276, SERVICE 16, SHIFT 5,
+# FLY_IN_FLY_OUT 3, HOUR 1. Ставка за смену и месячный оклад
+# в одной медиане дают величину, не означающую ничего.
+SALARY_MODE = "MONTH"
+
+
+def salary_mode(v: dict) -> str | None:
+    rng = v.get("salary_range")
+    if isinstance(rng, dict) and isinstance(rng.get("mode"), dict):
+        return rng["mode"].get("id")
+    # Нет salary_range — считаем месячной: так было до появления поля
+    return SALARY_MODE if v.get("salary") else None
+
+
 def point_estimate(sal: dict) -> float | None:
     """Одно число на вакансию: середина вилки, либо доступная граница."""
     lo, hi = sal.get("from"), sal.get("to")
@@ -119,9 +134,13 @@ def main() -> int:
         print("курсы: " + ", ".join(f"{c}={v:.4g}" for c, v in sorted(fx.items())
                                     if c in ("KZT", "UZS", "KGS")))
 
-    # Оставляем только с зарплатой в выбранной валюте
+    # Оставляем только с зарплатой в выбранной валюте и месячной ставкой
     rows = []
+    skipped_mode = 0
     for v in vacancies:
+        if salary_mode(v) != SALARY_MODE:
+            skipped_mode += 1
+            continue
         sal = v.get("salary") or v.get("salary_range")
         if not isinstance(sal, dict):
             continue
@@ -156,6 +175,9 @@ def main() -> int:
         return 1
 
     print(f"с зарплатой в {args.currency}: {len(rows)}")
+    if skipped_mode:
+        print(f"  отброшено не-месячных ставок: {skipped_mode} "
+              f"(за смену, за услугу, почасовые, вахта)")
     gross = sum(1 for r in rows if r["gross"] is True)
     net = sum(1 for r in rows if r["gross"] is False)
     print(f"  до вычета налогов: {gross}, на руки: {net}, не указано: {len(rows) - gross - net}")

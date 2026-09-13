@@ -20,6 +20,22 @@ models:
           - dbt_utils.expression_is_true:
               expression: "<= salary_to or salary_to is null"
               config: {severity: warn}
+      - name: salary_mode
+        description: >
+          За какой период указана сумма. В зарплатных метриках брать
+          только MONTH: ставка за смену и месячный оклад несравнимы.
+          На 2026-09-14: MONTH 1276, SERVICE 16, SHIFT 5,
+          FLY_IN_FLY_OUT 3, HOUR 1.
+        tests:
+          - accepted_values:
+              values: ["MONTH", "SERVICE", "SHIFT", "HOUR", "FLY_IN_FLY_OUT", "DAY", "WEEK"]
+              config: {severity: warn}
+      - name: work_format
+        description: Формат работы из источника — REMOTE / HYBRID / ON_SITE / FIELD_WORK.
+      - name: work_city
+        description: >
+          Город фактической работы из address. Расходится с city
+          у релокационных вакансий (findings-03).
 
   - name: stg_market_counters
     description: Счётчики рынка по странам на дату.
