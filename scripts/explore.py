@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from enrichment.vacancy import is_monthly, salary_of  # noqa: E402
 from ingestion.config import S3Config  # noqa: E402
 from ingestion.storage.s3 import RawStorage  # noqa: E402
 
@@ -53,10 +54,6 @@ def load_details(storage: RawStorage, country: str, dt: str) -> list[dict]:
     return out
 
 
-def salary_of(v: dict) -> dict | None:
-    """У hh два поля зарплаты, оба могут быть null (см. docs/data_notes.md §2)."""
-    raw = v.get("salary") or v.get("salary_range")
-    return raw if isinstance(raw, dict) else None
 
 
 def guess_grade(title: str) -> str:
@@ -100,9 +97,15 @@ def main() -> int:
     print(f"\nвсего: {total}\n" + "=" * 62)
 
     # 1. Зарплаты
-    with_sal = [v for v in vacancies if salary_of(v)]
+    # Только месячные: ставка за смену и оклад несравнимы (findings-03)
+    monthly = [v for v in vacancies if is_monthly(v)]
+    not_monthly = sum(1 for v in vacancies if salary_of(v) and not is_monthly(v))
+    with_sal = [v for v in monthly if salary_of(v)]
     only_range = [v for v in vacancies if not v.get("salary") and v.get("salary_range")]
     print("\n1. ЗАРПЛАТА")
+    if not_monthly:
+        print(f"   не месячные (отброшены): {not_monthly:5}  "
+              f"— за смену, услугу, час, вахта")
     print(f"   указана:                {len(with_sal):5}  {pct(len(with_sal), total)}")
     print(f"   только в salary_range:  {len(only_range):5}  {pct(len(only_range), total)}")
     both = sum(1 for v in with_sal if (s := salary_of(v)) and s.get("from") and s.get("to"))

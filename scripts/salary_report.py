@@ -22,6 +22,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from enrichment.grade import detect as detect_grade  # noqa: E402
+from enrichment.vacancy import (  # noqa: E402
+    ad_key,
+    is_monthly,
+    is_relocation,
+    looks_like_field_work,
+    posting_city,
+    work_city,
+)
 from ingestion.config import S3Config  # noqa: E402
 from ingestion.storage.s3 import RawStorage  # noqa: E402
 
@@ -49,19 +57,6 @@ def grade_of(v: dict) -> str:
     return grade or "—"
 
 
-# Зарплата сравнима только внутри одного режима выплаты.
-# В данных на 2026-09-14: MONTH 1276, SERVICE 16, SHIFT 5,
-# FLY_IN_FLY_OUT 3, HOUR 1. Ставка за смену и месячный оклад
-# в одной медиане дают величину, не означающую ничего.
-SALARY_MODE = "MONTH"
-
-
-def salary_mode(v: dict) -> str | None:
-    rng = v.get("salary_range")
-    if isinstance(rng, dict) and isinstance(rng.get("mode"), dict):
-        return rng["mode"].get("id")
-    # Нет salary_range — считаем месячной: так было до появления поля
-    return SALARY_MODE if v.get("salary") else None
 
 
 def point_estimate(sal: dict) -> float | None:
@@ -105,6 +100,12 @@ def main() -> int:
     parser.add_argument("--city")
     parser.add_argument("--currency", default="KZT")
     parser.add_argument("--min-count", type=int, default=MIN_COUNT)
+    parser.add_argument("--keep-copies", action="store_true",
+                        help="не схлопывать мультигородские копии (завышает спрос на ~4%%)")
+    parser.add_argument("--keep-relocation", action="store_true",
+                        help="оставить релокационные вакансии (перекашивают медиану)")
+    parser.add_argument("--by-posting-city", action="store_true",
+                        help="считать по городу раздела, а не по месту работы")
     parser.add_argument("--usd", action="store_true",
                         help="пересчитать в USD по курсу на дату (сравнение стран)")
     parser.add_argument("--mix-gross", action="store_true",
@@ -138,7 +139,7 @@ def main() -> int:
     rows = []
     skipped_mode = 0
     for v in vacancies:
-        if salary_mode(v) != SALARY_MODE:
+        if not is_monthly(v):
             skipped_mode += 1
             continue
         sal = v.get("salary") or v.get("salary_range")
@@ -154,7 +155,9 @@ def main() -> int:
             value /= fx[cur]
         elif cur != args.currency:
             continue
-        city_raw = (v.get("area") or {}).get("name") or "—"
+        city_raw = (
+            posting_city(v) if args.by_posting_city else work_city(v)
+        ) or "—"
         city = (
             city_raw if city_raw in MAJOR_CITIES
             else f"прочие города {COUNTRY_NAMES.get(v.get('_country'), '')}".strip()
@@ -162,6 +165,9 @@ def main() -> int:
         if args.city and city_raw != args.city:
             continue
         rows.append({
+            "ad": ad_key(v),
+            "relocation": is_relocation(v),
+            "field_work": looks_like_field_work(v),
             "value": value,
             "city": city,
             "role": (v.get("professional_roles") or [{}])[0].get("name") or "—",
@@ -169,6 +175,27 @@ def main() -> int:
             "exp": (v.get("experience") or {}).get("name") or "—",
             "gross": sal.get("gross"),
         })
+
+    # Релокация: area = Астана, address.city = Лимасол при EUR 7000.
+    # Одна такая вакансия в группе из пяти делает медиану бессмысленной.
+    relocations = sum(1 for r in rows if r["relocation"])
+    if not args.keep_relocation and relocations:
+        rows = [r for r in rows if not r["relocation"]]
+
+    # Мультигородские копии: одно объявление в девяти городах считается
+    # девятью вакансиями. Оставляем по одной на объявление — кроме тех,
+    # что похожи на настоящий региональный найм (findings-04).
+    collapsed = 0
+    if not args.keep_copies:
+        seen: set[str] = set()
+        kept = []
+        for r in rows:
+            if r["field_work"] or r["ad"] not in seen:
+                seen.add(r["ad"])
+                kept.append(r)
+            else:
+                collapsed += 1
+        rows = kept
 
     if not rows:
         print(f"нет вакансий с зарплатой в {args.currency}")
@@ -178,6 +205,12 @@ def main() -> int:
     if skipped_mode:
         print(f"  отброшено не-месячных ставок: {skipped_mode} "
               f"(за смену, за услугу, почасовые, вахта)")
+    if relocations and not args.keep_relocation:
+        print(f"  отброшено релокационных: {relocations} "
+              f"(место работы вне города публикации)")
+    if collapsed:
+        print(f"  схлопнуто копий одного объявления: {collapsed}")
+    print(f"  итого в расчёте: {len(rows)}")
     gross = sum(1 for r in rows if r["gross"] is True)
     net = sum(1 for r in rows if r["gross"] is False)
     print(f"  до вычета налогов: {gross}, на руки: {net}, не указано: {len(rows) - gross - net}")
