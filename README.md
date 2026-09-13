@@ -88,6 +88,7 @@ bash scripts/check_env.sh
 | `python scripts/check_depth_limit.py` | проверить нарезку на объёме России |
 | `bash scripts/check_env.sh` | все ли переменные заданы |
 | `pytest tests/ -q` | тесты разбора данных |
+| `bash scripts/dbt.sh build` | пересчитать staging и витрины |
 
 ---
 

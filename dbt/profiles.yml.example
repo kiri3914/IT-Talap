@@ -4,10 +4,10 @@ talap:
   outputs:
     dev:
       type: postgres
-      host: 127.0.0.1
-      port: 5442
-      user: talap
+      host: "{{ env_var('PG_HOST', '127.0.0.1') }}"
+      port: "{{ env_var('PG_PORT', '5442') | int }}"
+      user: "{{ env_var('PG_USER', 'talap') }}"
       password: "{{ env_var('PG_PASSWORD') }}"
-      dbname: talap
+      dbname: "{{ env_var('PG_DATABASE', 'talap') }}"
       schema: dbt
       threads: 4
