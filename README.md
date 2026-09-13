@@ -78,6 +78,7 @@ bash scripts/check_env.sh
 | `python scripts/restore_partition.py` | восстановить затёртую партицию из версий |
 | `python -m ingestion.run_telegram` | сбор Telegram-каналов |
 | `python -m ingestion.load_to_postgres` | сырьё из бакета в Postgres |
+| `python scripts/daily_check.py` | **утренняя проверка: сбор, логи, оборот** |
 | `python scripts/show_raw.py` | что в бакете, есть ли пропущенные дни |
 | `python scripts/explore.py` | профиль данных: зарплаты, опыт, скиллы, компании |
 | `python scripts/salary_report.py` | медианы по профессиям и городам |
