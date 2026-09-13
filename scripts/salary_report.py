@@ -27,6 +27,7 @@ from enrichment.vacancy import (  # noqa: E402
     is_relocation,
     looks_like_field_work,
     posting_city,
+    salary_of,
     work_city,
 )
 from ingestion.config import S3Config  # noqa: E402

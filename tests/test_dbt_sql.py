@@ -44,3 +44,24 @@ def test_scripts_являются_пакетом():
     """scripts/_data.py импортируется как scripts._data — без __init__
     относительный импорт в скриптах ломается."""
     assert (Path(__file__).parent.parent / "scripts" / "__init__.py").exists()
+
+
+@pytest.mark.parametrize(
+    "name",
+    [p.stem for p in sorted((Path(__file__).parent.parent / "scripts").glob("*.py"))
+     if not p.stem.startswith("__")],
+    ids=lambda n: n,
+)
+def test_скрипт_компилируется(name: str):
+    """Ловит неразрешённые имена без запуска скрипта: ruff --fix удаляет
+    импорт, когда он не используется, а следующая правка его возвращает."""
+    import py_compile
+    import subprocess
+    path = Path(__file__).parent.parent / "scripts" / f"{name}.py"
+    py_compile.compile(str(path), doraise=True)
+    result = subprocess.run(
+        ["python", "-m", "ruff", "check", "--select", "F821", "--quiet", str(path)],
+        capture_output=True, text=True,
+    )
+    if result.returncode not in (0, 1) or "F821" in result.stdout:
+        raise AssertionError(f"неразрешённые имена в {name}.py:\n{result.stdout}")
