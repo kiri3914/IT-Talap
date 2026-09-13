@@ -131,8 +131,13 @@ def main() -> int:
 
     # Оставляем только с зарплатой в выбранной валюте и месячной ставкой
     rows = []
-    skipped_mode = 0
+    skipped_mode = no_salary = 0
     for v in vacancies:
+        # Различаем «нет зарплаты» и «есть, но не месячная»: смешивать их
+        # в одном счётчике значит показать 2088 вместо реальных 25
+        if not salary_of(v):
+            no_salary += 1
+            continue
         if not is_monthly(v):
             skipped_mode += 1
             continue
@@ -196,6 +201,8 @@ def main() -> int:
         return 1
 
     print(f"с зарплатой в {args.currency}: {len(rows)}")
+    if no_salary:
+        print(f"  без указанной зарплаты: {no_salary}")
     if skipped_mode:
         print(f"  отброшено не-месячных ставок: {skipped_mode} "
               f"(за смену, за услугу, почасовые, вахта)")
