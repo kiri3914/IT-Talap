@@ -57,11 +57,16 @@ def test_скрипт_компилируется(name: str):
     импорт, когда он не используется, а следующая правка его возвращает."""
     import py_compile
     import subprocess
+    import sys
+
     path = Path(__file__).parent.parent / "scripts" / f"{name}.py"
     py_compile.compile(str(path), doraise=True)
+
+    # sys.executable, а не "python": в venv последнего может не быть в PATH
     result = subprocess.run(
-        ["python", "-m", "ruff", "check", "--select", "F821", "--quiet", str(path)],
+        [sys.executable, "-m", "ruff", "check", "--select", "F821",
+         "--output-format", "concise", str(path)],
         capture_output=True, text=True,
     )
-    if result.returncode not in (0, 1) or "F821" in result.stdout:
+    if "F821" in result.stdout:
         raise AssertionError(f"неразрешённые имена в {name}.py:\n{result.stdout}")
