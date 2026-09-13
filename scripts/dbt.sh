@@ -12,7 +12,7 @@ VENV="$APP_DIR/.venv"
 cd "$APP_DIR"
 
 [ -f .env ] || { echo "нет .env — cp .env.example .env"; exit 1; }
-set -a; . ./.env; set +a
+. "$APP_DIR/scripts/load_env.sh"
 : "${PG_PASSWORD:?PG_PASSWORD не задан в .env}"
 
 case "${1:-build}" in

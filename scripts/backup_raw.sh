@@ -7,7 +7,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-set -a; [ -f .env ] && . ./.env; set +a
+. "$(dirname "$0")/load_env.sh"
 
 : "${BACKUP_REMOTE:?BACKUP_REMOTE не задан в .env — копия не настроена}"
 : "${S3_BUCKET:=talap-raw}"
