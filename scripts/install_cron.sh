@@ -1,40 +1,32 @@
 #!/usr/bin/env bash
-# Ежедневный сбор в 03:00 по местному времени (Asia/Almaty).
-# Cron выключается только после трёх суток стабильной работы Airflow.
+# Ставит ночной прогон в cron. Повторный запуск обновляет задание,
+# а не плодит дубли: управляемый блок ограничен маркерами.
 set -euo pipefail
 
 APP_DIR="$HOME/talap"
 LOG_DIR="$HOME/logs"
-LOG="$LOG_DIR/talap-\$(date +\\%Y-\\%m).log"
-# Сбор в 03:00, загрузка в Postgres в 03:40 — отдельной строкой, чтобы
-# падение загрузки не выглядело как падение сбора. Сбор важнее: сырьё,
-# не собранное сегодня, не собирается никогда, а загрузить можно потом.
-LINE="0 3 * * * cd $APP_DIR && $APP_DIR/.venv/bin/python -m ingestion.run >> $LOG 2>&1"
-LINE_LOAD="40 3 * * * cd $APP_DIR && $APP_DIR/.venv/bin/python -m ingestion.load_to_postgres >> $LOG 2>&1"
+BEGIN="# >>> talap >>>"
+END="# <<< talap <<<"
 
 mkdir -p "$LOG_DIR"
 
-if crontab -l 2>/dev/null | grep -q "ingestion.run"; then
-    echo "Задания уже стоят:"
-    crontab -l | grep -E "ingestion\.(run|load_to_postgres)"
-    echo ""
-    echo "Чтобы добавить загрузку в Postgres к существующему сбору:"
-    echo "  crontab -e   и дописать строку:"
-    echo "  40 3 * * * cd $APP_DIR && $APP_DIR/.venv/bin/python -m ingestion.load_to_postgres >> $LOG_DIR/talap-\$(date +\\%Y-\\%m).log 2>&1"
-    exit 0
-fi
+BLOCK="$BEGIN
+# Сбор, загрузка в Postgres и пересчёт витрин. Один скрипт, а не три
+# задания: порядок важен. Правится через scripts/install_cron.sh.
+0 3 * * * cd $APP_DIR && bash scripts/nightly.sh >> $LOG_DIR/talap-\$(date +\\%Y-\\%m).log 2>&1
+$END"
 
-# `|| true` обязателен: без него `crontab -l` на пустом crontab возвращает 1,
-# при set -e подоболочка умирает до echo, и crontab затирается пустым вводом.
-( crontab -l 2>/dev/null || true; echo "$LINE"; echo "$LINE_LOAD" ) | crontab -
+# Вырезаем прежний блок и всё, что ставилось до появления маркеров
+current=$(crontab -l 2>/dev/null || true)
+cleaned=$(printf '%s\n' "$current" \
+    | awk -v b="$BEGIN" -v e="$END" '
+        $0 == b {skip=1} !skip {print} $0 == e {skip=0}' \
+    | grep -v "ingestion\.run\|ingestion\.load_to_postgres\|scripts/dbt\.sh" || true)
 
-if crontab -l 2>/dev/null | grep -q "ingestion.run"; then
-    echo "Поставлено:"
-    crontab -l | grep -E "ingestion\.(run|load_to_postgres)"
-else
-    echo "ОШИБКА: задание не появилось в crontab"
-    exit 1
-fi
+printf '%s\n%s\n' "$cleaned" "$BLOCK" | grep -v '^$' | crontab -
+
+echo "Установлено:"
+crontab -l | sed -n "/$BEGIN/,/$END/p"
 echo ""
-echo "Логи: $LOG_DIR/talap-YYYY-MM.log"
-echo "Проверить, что cron жив: systemctl status cron"
+echo "Логи:  $LOG_DIR/talap-YYYY-MM.log"
+echo "Демон: $(systemctl is-active cron 2>/dev/null || echo '?')"
