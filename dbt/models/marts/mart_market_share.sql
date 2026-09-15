@@ -35,6 +35,12 @@ windowed as (
 
 select
     dt,
+    -- День недели обязателен: рынок проседает на 4.8% за выходные
+    -- и отыгрывает 3.4% в понедельник (findings-06). Сравнение «ко вчера»
+    -- без него ведёт читателя к неверному выводу.
+    extract(isodow from dt)::int                   as day_of_week,
+    to_char(dt, 'Dy')                              as day_name,
+    extract(isodow from dt) in (6, 7)              as is_weekend,
     country,
     vacancies_total,
     vacancies_it,

@@ -15,6 +15,11 @@ models:
         tests:
           - not_null
           - accepted_values: {arguments: {values: ["kz", "uz", "kg"]}}
+      - name: day_of_week
+        description: >
+          День недели по ISO (1 — понедельник). Без него сравнение «ко вчера»
+          вводит в заблуждение: за выходные рынок теряет около 5% вакансий
+          и отыгрывает их в понедельник (findings-06).
       - name: it_share
         description: Доля IT-вакансий во всех вакансиях страны.
         tests:
