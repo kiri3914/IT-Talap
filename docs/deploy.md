@@ -203,30 +203,58 @@ S3_REGION=us-east-1
 
 Объём небольшой: единицы гигабайт в год в gzip. Бесплатных 10 ГБ на R2 хватит надолго.
 
+### 1. Бакет наружу
+
+Завести руками (аккаунт и ключи — ваши, я их не создаю):
+
+- **Cloudflare R2** — 10 ГБ бесплатно, egress бесплатный. Account ID виден в
+  адресе дашборда, ключи: R2 → Manage API Tokens.
+- либо **Backblaze B2** — 10 ГБ бесплатно, ключи: Application Keys.
+
+Бакет назвать, например, `talap-raw-backup`. Версионирование там включать не надо:
+копия и так только дополняется.
+
+### 2. rclone на сервере
+
 ```bash
 sudo apt-get install -y rclone
 rclone config
-#   n) новый remote, имя: minio
-#      тип: s3, provider: Minio, endpoint: http://127.0.0.1:9000
-#      ключи — из .env
-#   n) второй remote: backup (Cloudflare R2 или Backblaze B2)
+#   n) remote с именем  minio
+#      type: s3, provider: Minio
+#      endpoint: http://127.0.0.1:9010      <- наш порт, не 9000
+#      access_key_id / secret_access_key — из .env
+#
+#   n) remote с именем  r2
+#      type: s3, provider: Cloudflare
+#      endpoint: https://<account_id>.r2.cloudflarestorage.com
+#      region: auto
 ```
 
-В `.env`:
+Секреты живут в `~/.config/rclone/rclone.conf` — не в `.env` и не в argv:
+аргументы команд видны всем через `ps`.
+
+```bash
+chmod 600 ~/.config/rclone/rclone.conf
+```
+
+### 3. В `.env`
 
 ```
-BACKUP_REMOTE=backup:talap-raw
+BACKUP_REMOTE=r2:talap-raw-backup
 ```
 
-Проверка и ежедневный запуск:
+### 4. Проверка
 
 ```bash
 bash scripts/backup_raw.sh
-crontab -e
-# 30 4 * * * cd /home/kiri/talap && bash scripts/backup_raw.sh >> /home/kiri/logs/backup-$(date +\%Y-\%m).log 2>&1
 ```
 
-04:30 — через полтора часа после сбора, чтобы копировалось уже готовое.
+Первый прогон копирует всё накопленное, дальше — только новые объекты.
+В конце скрипт печатает размеры оригинала и копии: «команда отработала»
+и «данные доехали» — разные вещи, поэтому сверяем.
+
+Отдельная запись в cron не нужна: копия идёт последним шагом `nightly.sh`,
+после витрин. Пустой `BACKUP_REMOTE` шаг просто пропускает, прогон не падает.
 
 ### Пока копии нет
 
