@@ -56,6 +56,26 @@ def _dates_in_bucket(storage: RawStorage, prefix: str) -> set[str]:
             if (m := re.search(r"dt=([\d-]+)", k))}
 
 
+# Какие даты ещё не загружены. Считать по одной таблице нельзя: источники
+# появляются в разное время, и дата, закрытая по hh, молча похоронила бы
+# телеграм за тот же день — без ошибки, просто «новых дат нет».
+_LOADED_FROM = {
+    "raw/hh/": "SELECT DISTINCT dt::text FROM raw_landing.hh_vacancies",
+    "raw/telegram/": "SELECT DISTINCT dt::text FROM raw_landing.telegram_posts",
+    "raw/currency/": "SELECT DISTINCT dt::text FROM raw_landing.currency_rates",
+}
+
+
+def _pending(conn: psycopg.Connection, storage: RawStorage) -> set[str]:
+    pending: set[str] = set()
+    with conn.cursor() as cur:
+        for prefix, query in _LOADED_FROM.items():
+            cur.execute(query)
+            loaded = {r[0] for r in cur.fetchall()}
+            pending |= _dates_in_bucket(storage, prefix) - loaded
+    return pending
+
+
 def load_hh(conn: psycopg.Connection, storage: RawStorage, dt: str) -> dict:
     counts = {"list": 0, "details": 0, "counters": 0}
     with conn.cursor() as cur:
@@ -172,10 +192,7 @@ def main() -> int:
         elif args.full:
             dates = available
         else:
-            with conn.cursor() as cur:
-                cur.execute("SELECT DISTINCT dt::text FROM raw_landing.hh_vacancies")
-                loaded = {r[0] for r in cur.fetchall()}
-            dates = [d for d in available if d not in loaded]
+            dates = sorted(_pending(conn, storage))
 
         if not dates:
             log.info("новых дат нет, всё загружено")
