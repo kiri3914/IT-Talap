@@ -58,3 +58,52 @@ def test_просмотры(raw, expected):
 
 def test_пустая_страница():
     assert parse_page("<html></html>", "workitkz") == []
+
+
+def _page(ids: list[int]) -> str:
+    """Страница превью с заданными ID постов."""
+    return "".join(
+        f'<div class="tgme_widget_message_wrap">'
+        f'<div class="tgme_widget_message" data-post="workitkz/{i}">'
+        f'<div class="tgme_widget_message_text js-message_text">пост {i}</div>'
+        f'<time datetime="2026-09-07T07:29:01+00:00"></time>'
+        f"</div></div>"
+        for i in ids
+    )
+
+
+class FakeHTTP:
+    """Канал из 60 постов, отдающий страницы то по 20, то по 19."""
+
+    def __init__(self, sizes: list[int]) -> None:
+        self.sizes = sizes
+        self.calls = 0
+        self.next_id = 1000
+
+    def get_text(self, path: str, params: dict | None = None) -> str:
+        if self.calls >= len(self.sizes):
+            return ""  # архив кончился
+        size = self.sizes[self.calls]
+        self.calls += 1
+        ids = list(range(self.next_id - size, self.next_id))
+        self.next_id -= size
+        return _page(ids)
+
+    def close(self) -> None:
+        pass
+
+
+def test_короткая_страница_не_обрывает_пагинацию(monkeypatch):
+    """Регресс: телеграм отдаёт 19 постов вместо 20 — это не конец канала.
+
+    На workitkz такая страница обрывала сбор на 98 постах из ~7700.
+    Конец архива определяется только тем, что новых ID больше не приходит.
+    """
+    from ingestion.sources import telegram
+
+    client = telegram.TelegramClient.__new__(telegram.TelegramClient)
+    client._http = FakeHTTP([20, 19, 20])  # вторая страница короткая
+
+    posts = client.fetch_channel("workitkz", max_posts=500)
+
+    assert len(posts) == 59, "сбор оборвался на короткой странице"

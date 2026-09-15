@@ -2,7 +2,10 @@
 
 Telethon и api_id НЕ нужны: у публичных каналов есть веб-превью
 `t.me/s/<канал>`, которое отдаётся обычным HTTP без авторизации.
-Проверено 2026-09-12: 20 постов на страницу, пагинация через ?before=<id>.
+Проверено 2026-09-12: до 20 постов на страницу, пагинация через ?before=<id>.
+ВАЖНО: страница может отдать 19 и меньше — удалённые сообщения и альбомы.
+Считать короткую страницу концом канала нельзя: на workitkz это обрывало
+сбор на 98 постах из ~7700. Конец определяем только по отсутствию новых ID.
 
 Устройство постов сильно отличается от hh:
   • стабильного ID вакансии нет — есть только (channel, message_id)
@@ -117,12 +120,10 @@ class TelegramClient:
 
             new = {p["message_id"]: p for p in posts if p["message_id"] not in collected}
             if not new:
-                break  # страница повторилась — дальше нечего листать
+                break  # страница повторилась — это и есть начало канала
             collected.update(new)
 
             before = min(p["message_id"] for p in posts)
-            if len(posts) < POSTS_PER_PAGE:
-                break  # дошли до начала канала
 
         result = sorted(collected.values(), key=lambda p: -p["message_id"])[:max_posts]
         log.info("%s: собрано %d постов", channel, len(result))
