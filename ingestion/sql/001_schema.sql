@@ -36,6 +36,11 @@ CREATE TABLE IF NOT EXISTS raw_landing.hh_vacancies (
 );
 CREATE INDEX IF NOT EXISTS ix_hh_vacancies_dt ON raw_landing.hh_vacancies (dt, country);
 
+-- Для dbt source freshness: он делает max(loaded_at). При нынешних 13k строк
+-- планировщик всё равно берёт seq scan — индекс заведён на вырост.
+CREATE INDEX IF NOT EXISTS ix_hh_vacancies_loaded_at
+    ON raw_landing.hh_vacancies (loaded_at DESC);
+
 -- Посты телеграма. Ключ (channel, message_id) — единственный стабильный
 -- идентификатор, который даёт источник.
 CREATE TABLE IF NOT EXISTS raw_landing.telegram_posts (
