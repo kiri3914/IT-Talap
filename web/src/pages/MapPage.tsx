@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { scopeColor, useStore } from "../ctx";
 import { employerName, isActive, uniqueAds } from "../model/store";
 import { quantile } from "../model/stats";
 import { int, nVac, usd } from "../model/format";
-import { Table, head, row, tipProps, useWidth } from "../charts/kit";
+import { Table } from "../charts/kit";
 import type { Country, Vacancy } from "../model/types";
 
 const CITIES: Array<{ name: string; c: Country }> = [
@@ -14,80 +16,140 @@ const FAMILY: Record<string, string> = {
   "": "Все профессии", development: "Разработка", data: "Аналитика и данные", infrastructure: "Инфраструктура",
   support: "Поддержка", design: "Дизайн", management: "Управление",
 };
-
 const RADIUS_KM = 25;
+/** Шаг сетки ~150 м: вакансии одного здания и соседних домов — один кружок. */
+const CELL_DEG = 0.0015;
+
+// Подложка: стандартные тайлы OpenStreetMap. В тёмной теме они инвертируются
+// фильтром (класс map-dark в styles.css) — отдельного тёмного сервера без ключа нет:
+// CARTO с 2026 года требует ключ API.
+// ТОЛЬКО ДЛЯ ВНУТРЕННЕЙ ВЕРСИИ: правила tile.openstreetmap.org запрещают
+// заметный трафик. Перед публикацией — собственные тайлы (Protomaps, PMTiles:
+// один файл рядом с сайтом, без внешних запросов).
+const TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright">участники OpenStreetMap</a>';
+
+function isDark() {
+  const t = document.documentElement.dataset.theme;
+  if (t === "dark") return true;
+  if (t === "light") return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
 function km(a: [number, number], b: [number, number]) {
   const r = Math.PI / 180, dLat = (b[0] - a[0]) * r, dLng = (b[1] - a[1]) * r;
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLng / 2) ** 2;
   return 12742 * Math.asin(Math.sqrt(h));
 }
 
-/** Карта плотности без подложки. Берём точки в радиусе 25 км от центра города:
- *  у части «алматинских» вакансий адрес в Астане, и рамка по процентилям
- *  растягивалась на сотни километров. */
-function DensityMap({ points: all, color, selected, onPick }: {
-  points: Vacancy[]; color: string; selected: string | null; onPick: (cell: string, items: Vacancy[]) => void;
-}) {
-  const [ref, W] = useWidth<HTMLDivElement>();
-  if (all.length < 5) return <div ref={ref} className="empty">Мало вакансий с адресом.</div>;
-  const cLat = quantile(all.map((p) => p.lat!).sort((a, b) => a - b), 0.5);
-  const cLng = quantile(all.map((p) => p.lng!).sort((a, b) => a - b), 0.5);
-  const points = all.filter((p) => km([p.lat!, p.lng!], [cLat, cLng]) <= RADIUS_KM);
-  const outside = all.length - points.length;
-  const lats = points.map((p) => p.lat!).sort((a, b) => a - b), lngs = points.map((p) => p.lng!).sort((a, b) => a - b);
-  const la0 = quantile(lats, 0.01), la1 = quantile(lats, 0.99), lo0 = quantile(lngs, 0.01), lo1 = quantile(lngs, 0.99);
-  const k = Math.cos(((la0 + la1) / 2) * Math.PI / 180);
-  const spanX = (lo1 - lo0) * k || 0.01, spanY = la1 - la0 || 0.01;
-  const H = Math.min(620, Math.max(320, (W * spanY) / spanX));
-  const cell = Math.max(14, Math.round(W / 34));
-  const X = (lng: number) => ((lng - lo0) * k / spanX) * (W - 20) + 10;
-  const Y = (lat: number) => H - 10 - ((lat - la0) / spanY) * (H - 20);
-  const cells = new Map<string, Vacancy[]>();
-  for (const p of points) {
-    if (p.lat! < la0 || p.lat! > la1 || p.lng! < lo0 || p.lng! > lo1) continue;
-    const key = `${Math.floor(X(p.lng!) / cell)}:${Math.floor(Y(p.lat!) / cell)}`;
-    (cells.get(key) ?? cells.set(key, []).get(key)!).push(p);
+interface Cell { key: string; lat: number; lng: number; items: Vacancy[] }
+
+/** Точки в радиусе 25 км от центра города: у части «алматинских» вакансий адрес
+ *  в Астане, и без этого карта показывала бы полстраны. */
+function cellsFor(points: Vacancy[]): { cells: Cell[]; outside: number } {
+  if (!points.length) return { cells: [], outside: 0 };
+  const c: [number, number] = [
+    quantile(points.map((p) => p.lat!).sort((a, b) => a - b), 0.5),
+    quantile(points.map((p) => p.lng!).sort((a, b) => a - b), 0.5),
+  ];
+  const inside = points.filter((p) => km([p.lat!, p.lng!], c) <= RADIUS_KM);
+  const m = new Map<string, Cell>();
+  for (const p of inside) {
+    const key = `${Math.round(p.lat! / CELL_DEG)}:${Math.round(p.lng! / CELL_DEG)}`;
+    const cell = m.get(key) ?? { key, lat: 0, lng: 0, items: [] };
+    cell.items.push(p);
+    m.set(key, cell);
   }
-  const max = Math.max(...[...cells.values()].map((v) => v.length));
-  const top = [...cells.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 3).map(([key]) => key);
-  return (
-    <div ref={ref} className="chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Карта плотности вакансий" style={{ ["--c" as string]: color }}>
-        <rect x={0} y={0} width={W} height={H} rx={12} style={{ fill: "var(--wash)" }} />
-        {[...cells.entries()].map(([key, items]) => {
-          const [cx, cy] = key.split(":").map(Number);
-          const op = 0.15 + 0.85 * Math.sqrt(items.length / max);
-          return (
-            <g key={key} {...tipProps(() => head(`${nVac(items.length)} здесь`) + row("Например", items[0].t.slice(0, 40)) + row("", "нажмите, чтобы увидеть все"))}
-              onClick={() => onPick(key, items)} style={{ cursor: "pointer" }}>
-              <rect x={cx * cell + 1} y={cy * cell + 1} width={cell - 2} height={cell - 2} rx={3}
-                style={{ fill: "var(--c)", opacity: op, stroke: selected === key ? "var(--ink)" : "none", strokeWidth: 2 }} />
-              {top.includes(key) && <text x={cx * cell + cell / 2} y={cy * cell + cell / 2 + 4} textAnchor="middle" className="t-strong" style={{ fontSize: 11 }}>{items.length}</text>}
-            </g>
-          );
-        })}
-      </svg>
-      {outside > 0 && <p className="subnote" style={{ marginTop: 8 }}>Не показано {int(outside)} — адрес дальше {RADIUS_KM} км от центра города.</p>}
-    </div>
-  );
+  for (const cell of m.values()) {
+    cell.lat = cell.items.reduce((s, p) => s + p.lat!, 0) / cell.items.length;
+    cell.lng = cell.items.reduce((s, p) => s + p.lng!, 0) / cell.items.length;
+  }
+  return { cells: [...m.values()], outside: points.length - inside.length };
+}
+
+function LeafletMap({ cells, colorVar, selected, onPick }: {
+  cells: Cell[]; colorVar: string; selected: string | null; onPick: (cell: Cell) => void;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const map = useRef<L.Map | null>(null);
+  const tiles = useRef<L.TileLayer | null>(null);
+  const layer = useRef<L.LayerGroup | null>(null);
+
+  // карта создаётся один раз; подложка переключается вместе с темой
+  useEffect(() => {
+    if (!box.current) return;
+    const m = L.map(box.current, { scrollWheelZoom: false, attributionControl: true });
+    tiles.current = L.tileLayer(TILES, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(m);
+    layer.current = L.layerGroup().addTo(m);
+    map.current = m;
+    const sync = () => box.current?.classList.toggle("map-dark", isDark());
+    sync();
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    mq.addEventListener("change", sync);
+    const mo = new MutationObserver(sync);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => { mq.removeEventListener("change", sync); mo.disconnect(); m.remove(); map.current = null; };
+  }, []);
+
+  // кружки: размер — число вакансий в точке
+  useEffect(() => {
+    const m = map.current, g = layer.current;
+    if (!m || !g) return;
+    g.clearLayers();
+    // Leaflet пишет цвет в атрибуты SVG, а там CSS-переменные не работают —
+    // берём вычисленное значение
+    const color = getComputedStyle(document.documentElement).getPropertyValue(colorVar.replace(/var\((.*)\)/, "$1")).trim() || "#2a78d6";
+    const max = Math.max(1, ...cells.map((c) => c.items.length));
+    for (const c of cells) {
+      const n = c.items.length;
+      L.circleMarker([c.lat, c.lng], {
+        radius: 3 + 11 * Math.sqrt(n / max),
+        // тонкая обводка цветом фона разделяет соседние кружки
+        color: c.key === selected ? (isDark() ? "#fff" : "#000") : (isDark() ? "#0d1319" : "#ffffff"),
+        weight: c.key === selected ? 3 : 1,
+        fillColor: color,
+        fillOpacity: 0.7,
+      })
+        .bindTooltip(`${nVac(n)}${n === 1 ? `: ${c.items[0].t}` : ""}`, { direction: "top" })
+        .on("click", () => onPick(c))
+        .addTo(g);
+    }
+  }, [cells, colorVar, selected, onPick]);
+
+  // кадрирование — по основной массе вакансий (5–95-й процентили), иначе
+  // одиночные дальние адреса уводят масштаб и центр сливается в пятно.
+  // Только при смене набора точек, а не при выборе кружка.
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !cells.length) return;
+    const lats: number[] = [], lngs: number[] = [];
+    for (const c of cells) for (let i = 0; i < c.items.length; i++) { lats.push(c.lat); lngs.push(c.lng); }
+    lats.sort((a, b) => a - b); lngs.sort((a, b) => a - b);
+    const b = L.latLngBounds([quantile(lats, 0.05), quantile(lngs, 0.05)], [quantile(lats, 0.95), quantile(lngs, 0.95)]);
+    m.fitBounds(b, { padding: [16, 16], maxZoom: 15 });
+  }, [cells]);
+
+  return <div ref={box} style={{ height: "min(70vh, 620px)", borderRadius: 12, overflow: "hidden", border: "1px solid var(--hair)" }} />;
 }
 
 export default function MapPage() {
   const s = useStore();
   const [city, setCity] = useState(CITIES[0].name);
   const [family, setFamily] = useState("");
-  const [picked, setPicked] = useState<{ cell: string; items: Vacancy[] } | null>(null);
+  const [picked, setPicked] = useState<Cell | null>(null);
   const meta = CITIES.find((c) => c.name === city)!;
 
   const points = useMemo(() => uniqueAds(s.vacancies.filter((v) =>
     v.city === city && isActive(v, s) && v.lat != null && v.lng != null &&
     (!family || (v.p && s.overview.professions[v.p]?.family === family)))), [s, city, family]);
+  const { cells, outside } = useMemo(() => cellsFor(points), [points]);
+  const top = useMemo(() => [...cells].sort((a, b) => b.items.length - a.items.length).slice(0, 5), [cells]);
 
   return (
     <main className="wrap">
       <p className="eyebrow">Карта</p>
       <h1 className="page-title">Где в городе открыты IT-вакансии</h1>
-      <p className="lede">Каждая клетка — участок города, чем темнее, тем больше открытых вакансий с этим адресом. Подложки нет: мы не подключаем сторонние картографические сервисы. Нажмите на клетку, чтобы увидеть вакансии.</p>
+      <p className="lede">Кружок — здание или соседние дома, чем он больше, тем больше там открытых вакансий. Нажмите на кружок, чтобы увидеть вакансии.</p>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 24, alignItems: "end" }}>
         <div className="field">
           <label>Город</label>
@@ -105,22 +167,36 @@ export default function MapPage() {
             {Object.entries(FAMILY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
-        <span className="subnote">{nVac(points.length)} с адресом</span>
+        <span className="subnote">{nVac(points.length)} с адресом{outside ? `, ${int(outside)} — дальше ${RADIUS_KM} км от центра, не показаны` : ""}</span>
       </div>
       <figure>
-        <DensityMap points={points} color={scopeColor(meta.c)} selected={picked?.cell ?? null} onPick={(cell, items) => setPicked({ cell, items })} />
-        <figcaption>Север сверху. Адрес указывают не все работодатели, а некоторые пишут адрес головного офиса.</figcaption>
+        <LeafletMap cells={cells} colorVar={scopeColor(meta.c)} selected={picked?.key ?? null} onPick={setPicked} />
+        <figcaption>Подложка: © участники OpenStreetMap. Адрес указывают не все работодатели, а некоторые пишут адрес головного офиса.</figcaption>
       </figure>
-      {picked && (
-        <section className="block">
-          <h2>{nVac(picked.items.length)} в выбранной клетке</h2>
-          <figure>
-            <Table head={["Вакансия", "Компания", "Зарплата"]}
-              rows={picked.items.map((v) => [<Link to={`/v/${v.id}`}>{v.t}</Link>, employerName(v.emp, s), v.usd ? usd(v.usd) : "—"])} />
-          </figure>
-          <p className="subnote">Всего в клетке {int(picked.items.length)}.</p>
-        </section>
-      )}
+
+      <section className="block">
+        {picked ? (
+          <>
+            <h2>{nVac(picked.items.length)} в этой точке</h2>
+            <figure>
+              <Table head={["Вакансия", "Компания", "Зарплата"]}
+                rows={picked.items.map((v) => [<Link to={`/v/${v.id}`}>{v.t}</Link>, employerName(v.emp, s), v.usd ? usd(v.usd) : "—"])} />
+            </figure>
+          </>
+        ) : (
+          <>
+            <h2>Где больше всего вакансий</h2>
+            <figure>
+              <Table head={["Точка", "Вакансий", "Компании"]}
+                rows={top.map((c, i) => [
+                  <button type="button" className="btn ghost" style={{ padding: "6px 10px" }} onClick={() => setPicked(c)}>Показать #{i + 1}</button>,
+                  int(c.items.length),
+                  [...new Set(c.items.map((v) => employerName(v.emp, s)))].slice(0, 3).join(", "),
+                ])} />
+            </figure>
+          </>
+        )}
+      </section>
     </main>
   );
 }

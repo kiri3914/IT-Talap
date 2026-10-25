@@ -246,3 +246,7 @@ footer.foot { border-top: 1px solid var(--hair); padding-block: 24px 40px; font-
   .scopebar .updated { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* тёмная подложка карты: инверсия стандартных тайлов OSM */
+.map-dark .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6); }
+.leaflet-container { background: var(--wash); font-family: var(--font-body); }

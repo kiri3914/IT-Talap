@@ -27,6 +27,8 @@ from pathlib import Path
 
 import psycopg
 
+from enrichment.profession import guess_profession
+from enrichment.telegram_fields import parse_post
 from enrichment.vacancy import ad_key, is_monthly, posting_city, salary_of
 from ingestion.config import PostgresConfig
 from scripts.export_site_data import USD_CEIL, USD_FLOOR, Rates, load_soft_skills, point
@@ -100,6 +102,9 @@ def main() -> int:
 
         cur.execute("select dt, currency, rate from raw_landing.currency_rates")
         rates = Rates(cur.fetchall())
+
+        cur.execute("select channel, payload from raw_landing.telegram_posts")
+        posts = cur.fetchall()
 
     # Наблюдённые дни. Пропуски (сервер лежал) в индексацию не входят:
     # «вакансия пропала» значит «не было в выдаче в следующий НАБЛЮДЁННЫЙ день».
@@ -199,6 +204,20 @@ def main() -> int:
         })
 
     events.sort(key=lambda e: (e[0], e[1]))
+
+    # Телеграм: без текстов постов — только год, страна, вилка и профессия,
+    # распознанная правилами по заголовку (enrichment/profession.py).
+    # На вакансиях hh правила узнают 69% заголовков и совпадают с ролью
+    # работодателя в 84% случаев.
+    telegram = []
+    for channel, payload in posts:
+        f = parse_post(payload)
+        if not f.get("is_vacancy") or not f.get("published_at"):
+            continue
+        lo, hi = f.get("salary_from"), f.get("salary_to")
+        val = (lo + hi) / 2 if lo and hi else (lo or hi)
+        telegram.append([int(f["published_at"][:4]), f.get("country"), f.get("currency"),
+                         round(val) if val else None, guess_profession(f.get("title")), channel])
     meta = {
         "generated_at": datetime.now().astimezone().isoformat(timespec="minutes"),
         "days": [d.isoformat() for d in days],
@@ -219,6 +238,7 @@ def main() -> int:
         "vacancies.json": write("vacancies.json", vacancies),
         "events.json": write("events.json", events),
         "employers.json": write("employers.json", employers),
+        "telegram.json": write("telegram.json", telegram),
     }
     for name, size in sizes.items():
         print(f"{name:16} {size / 1024:8.0f} КБ", file=sys.stderr)
