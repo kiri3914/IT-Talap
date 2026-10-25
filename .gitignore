@@ -12,3 +12,6 @@ ingestion/schemas/hh_known_fields.json
 .idea/
 *.iml
 .vscode/
+
+# собранный сайт — артефакт сборки, пересобирается из site/index.html + site/data.json
+site/dist/

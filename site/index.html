@@ -1,0 +1,985 @@
+<title>Талап</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Рынок IT-вакансий Казахстана, Узбекистана и Кыргызстана: спрос, зарплаты, срок жизни вакансий. Открытые данные, обновляются каждую ночь.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Unbounded:wght@500;600&display=swap">
+<style>
+/* Layout: одна колонка отчёта (до 1120px). Графики на всю ширину колонки,
+   текст держится в 64ch. Липкий переключатель страны управляет всеми графиками.
+   Цвет на странице дают только данные — три страны; остальное чернила. */
+:root {
+  --bg: #f6f8f9;
+  --panel: #ffffff;
+  --ink: #0f2233;
+  --ink-2: #44535f;
+  --muted: #6f7c87;
+  --grid: #e1e6ea;
+  --axis: #b9c3ca;
+  --hair: rgba(15, 34, 51, 0.12);
+  --wash: rgba(15, 34, 51, 0.045);
+  --kz: #2a78d6;
+  --uz: #eb6834;
+  --kg: #1baf7a;
+  --all: #4b5862;
+  --font-display: "Unbounded", "Golos Text", system-ui, sans-serif;
+  --font-body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.5rem;
+  --step-3: 2rem;
+  --step-4: clamp(2.25rem, 1.4rem + 3.4vw, 3.75rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1319; --panel: #131c24; --ink: #e8edf1; --ink-2: #b3bec7; --muted: #82909b;
+    --grid: #1e2932; --axis: #34424d; --hair: rgba(232, 237, 241, 0.12); --wash: rgba(232, 237, 241, 0.04);
+    --kz: #3987e5; --uz: #d95926; --kg: #199e70; --all: #a9b6bf;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1319; --panel: #131c24; --ink: #e8edf1; --ink-2: #b3bec7; --muted: #82909b;
+  --grid: #1e2932; --axis: #34424d; --hair: rgba(232, 237, 241, 0.12); --wash: rgba(232, 237, 241, 0.04);
+  --kz: #3987e5; --uz: #d95926; --kg: #199e70; --all: #a9b6bf;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 var(--step-0)/1.55 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* шапка */
+.masthead { padding-block: 22px 0; }
+.masthead .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.logo { font: 600 1.25rem/1 var(--font-display); letter-spacing: -0.01em; text-decoration: none; }
+.logo small { font: 400 0.8125rem/1 var(--font-body); color: var(--muted); letter-spacing: 0; margin-left: 10px; }
+.masthead nav { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.875rem; color: var(--ink-2); }
+.masthead nav a { text-decoration: none; }
+.masthead nav a:hover { color: var(--ink); text-decoration: underline; }
+
+/* вступление */
+.intro { padding-block: 56px 40px; }
+.eyebrow {
+  font: 500 0.75rem/1.2 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.intro h1 {
+  font: 500 var(--step-4)/1.06 var(--font-display);
+  letter-spacing: -0.025em;
+  max-width: 17ch;
+  margin-top: 18px;
+}
+.intro .lede { margin-top: 22px; max-width: 60ch; font-size: var(--step-1); color: var(--ink-2); }
+.intro .lede b { color: var(--ink); font-weight: 600; }
+
+/* переключатель страны */
+.switchbar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--hair);
+}
+.switchbar .wrap { display: flex; align-items: center; gap: 14px; padding-block: 10px; flex-wrap: wrap; }
+.switchbar .label { font-size: 0.8125rem; color: var(--muted); }
+.seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--wash); gap: 2px; flex-wrap: wrap; }
+.seg button {
+  font: 500 0.875rem/1 var(--font-body);
+  color: var(--ink-2);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--hair); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex: none; }
+.switchbar .updated { margin-left: auto; font-size: 0.8125rem; color: var(--muted); }
+
+/* показатели */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  margin-top: 40px;
+}
+.kpi { padding: 22px 20px 22px 0; min-width: 0; }
+.kpi + .kpi { padding-left: 20px; border-left: 1px solid var(--hair); }
+.kpi .v { font: 500 clamp(1.75rem, 1.2rem + 2vw, 2.625rem)/1 var(--font-display); letter-spacing: -0.02em; }
+.kpi .v small { font-size: 0.5em; letter-spacing: 0; margin-left: 2px; color: var(--ink-2); }
+.kpi .k { margin-top: 10px; font-size: 0.875rem; color: var(--ink-2); max-width: 24ch; }
+.kpi .s { margin-top: 6px; font-size: 0.75rem; color: var(--muted); }
+.countries { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 18px; font-size: 0.875rem; color: var(--ink-2); }
+.countries span { display: inline-flex; align-items: center; gap: 8px; }
+.countries b { color: var(--ink); font-weight: 600; }
+
+/* разделы */
+section.block { padding-block: 72px 8px; scroll-margin-top: 64px; }
+section.block + section.block { border-top: 1px solid var(--hair); margin-top: 56px; }
+.block h2 {
+  font: 500 var(--step-3)/1.15 var(--font-display);
+  letter-spacing: -0.02em;
+  margin-top: 14px;
+  max-width: 24ch;
+}
+.block .dek { margin-top: 14px; max-width: 64ch; color: var(--ink-2); }
+.block .dek b { color: var(--ink); font-weight: 600; }
+figure { margin: 32px 0 0; }
+figcaption { margin-top: 12px; font-size: 0.8125rem; color: var(--muted); max-width: 72ch; }
+.chart { width: 100%; position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: var(--font-body); fill: var(--muted); font-size: 12px; }
+.chart .t-ink { fill: var(--ink); }
+.chart .t-ink2 { fill: var(--ink-2); }
+.chart .t-strong { fill: var(--ink); font-weight: 600; }
+.chart .num, .chart .tick { font-variant-numeric: tabular-nums; }
+.grid line { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.baseline { stroke: var(--axis); stroke-width: 1; shape-rendering: crispEdges; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; }
+.two h3 { font: 600 0.9375rem/1.3 var(--font-body); }
+.two .sub { font-size: 0.8125rem; color: var(--muted); margin-top: 2px; }
+
+details.table { margin-top: 14px; font-size: 0.875rem; }
+details.table summary { cursor: pointer; color: var(--ink-2); width: fit-content; }
+details.table summary:hover { color: var(--ink); }
+.tablewrap { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 500; color: var(--muted); font-size: 0.8125rem; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip { font-size: 0.8125rem; padding: 5px 10px; border-radius: 999px; background: var(--wash); color: var(--ink-2); }
+.chip b { color: var(--ink); font-weight: 600; margin-left: 4px; }
+.tag { font: 500 0.6875rem/1 var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+
+.formats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 24px; margin-top: 8px; }
+.formats .v { font: 500 var(--step-3)/1 var(--font-display); letter-spacing: -0.02em; }
+.formats .k { margin-top: 6px; font-size: 0.875rem; color: var(--ink-2); }
+
+/* методология */
+.method { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px 40px; margin-top: 32px; }
+.method h3 { font: 600 0.9375rem/1.3 var(--font-body); }
+.method p { margin-top: 6px; font-size: 0.9375rem; color: var(--ink-2); max-width: 52ch; }
+
+footer { margin-top: 88px; border-top: 1px solid var(--hair); padding-block: 28px 40px; font-size: 0.875rem; color: var(--muted); }
+footer .wrap { display: flex; gap: 12px 28px; flex-wrap: wrap; justify-content: space-between; }
+
+/* подсказка */
+#tip {
+  position: fixed; top: 0; left: 0; z-index: 50; pointer-events: none;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--hair); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  padding: 10px 12px; font-size: 0.8125rem; line-height: 1.45; max-width: 280px;
+}
+#tip .h { font-weight: 600; margin-bottom: 4px; }
+#tip .r { display: flex; justify-content: space-between; gap: 16px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+#tip .r b { color: var(--ink); font-weight: 600; }
+
+.fade { animation: fade .28s ease-out; }
+@keyframes fade { from { opacity: .35; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .fade { animation: none; } }
+
+@media (max-width: 860px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(3) { padding-left: 0; border-left: 0; }
+  .kpi:nth-child(n+3) { border-top: 1px solid var(--hair); }
+  .two { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .masthead nav { display: none; }
+}
+@media (max-width: 560px) {
+  .intro { padding-block: 36px 28px; }
+  section.block { padding-block: 52px 4px; }
+  .block h2 { font-size: var(--step-2); }
+  .switchbar .updated { display: none; }
+  .seg button { padding: 8px 10px; }
+}
+</style>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="logo" href="#top">Талап<small>рынок IT-вакансий</small></a>
+    <nav aria-label="Разделы">
+      <a href="#demand">Спрос</a>
+      <a href="#salary">Зарплаты</a>
+      <a href="#lifetime">Срок жизни</a>
+      <a href="#skills">Навыки</a>
+      <a href="#history">10 лет</a>
+      <a href="#method">Методология</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap intro">
+    <p class="eyebrow">Казахстан · Узбекистан · Кыргызстан</p>
+    <h1>Рынок IT-вакансий Центральной Азии</h1>
+    <p class="lede" id="lede"></p>
+    <div class="kpis" id="kpis"></div>
+    <div class="countries" id="countries"></div>
+  </div>
+
+  <div class="switchbar">
+    <div class="wrap">
+      <span class="label" id="seg-label">Страна</span>
+      <div class="seg" role="group" aria-labelledby="seg-label" id="seg"></div>
+      <span class="updated" id="updated"></span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="block" id="demand">
+      <p class="eyebrow">Спрос по дням · hh</p>
+      <h2 id="h-demand"></h2>
+      <p class="dek" id="d-demand"></p>
+      <figure>
+        <div class="chart" id="c-daily"></div>
+        <figcaption>Число открытых IT-вакансий на hh по данным ежедневного сбора. Серые полосы — выходные. Шкала начинается не с нуля, чтобы были видны колебания.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="two">
+          <div>
+            <h3 id="h-week"></h3>
+            <p class="sub">Средний прирост всех вакансий за день к предыдущему, %</p>
+            <div class="chart" id="c-week" style="margin-top:14px"></div>
+          </div>
+          <div>
+            <h3>Где открыты вакансии</h3>
+            <p class="sub">Открытых IT-вакансий по городам сейчас</p>
+            <div class="chart" id="c-cities" style="margin-top:14px"></div>
+          </div>
+        </div>
+      </figure>
+    </section>
+
+    <section class="block" id="salary">
+      <p class="eyebrow">Зарплаты · hh · в долларах в месяц</p>
+      <h2 id="h-salary"></h2>
+      <p class="dek" id="d-salary"></p>
+      <figure>
+        <div class="chart" id="c-prof"></div>
+        <figcaption id="cap-prof"></figcaption>
+        <details class="table"><summary>Таблица</summary><div class="tablewrap" id="t-prof"></div></details>
+      </figure>
+
+      <figure>
+        <h3 style="font:600 1rem/1.3 var(--font-body)" id="h-scatter"></h3>
+        <p class="sub" style="font-size:.8125rem;color:var(--muted);margin-top:2px" id="d-scatter"></p>
+        <div class="chart" id="c-scatter" style="margin-top:14px"></div>
+        <figcaption>Каждая точка — профессия. По горизонтали — доля вакансий с указанной зарплатой, по вертикали — медиана среди тех, где она указана.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="two">
+          <div>
+            <h3>Кого ищут по опыту</h3>
+            <p class="sub">Доля вакансий, %</p>
+            <div class="chart" id="c-exp-share" style="margin-top:14px"></div>
+          </div>
+          <div>
+            <h3 id="h-exp"></h3>
+            <p class="sub">Медиана зарплаты, $ в месяц</p>
+            <div class="chart" id="c-exp-pay" style="margin-top:14px"></div>
+          </div>
+        </div>
+      </figure>
+    </section>
+
+    <section class="block" id="lifetime">
+      <p class="eyebrow">Срок жизни вакансии · hh</p>
+      <h2 id="h-life"></h2>
+      <p class="dek" id="d-life"></p>
+      <figure>
+        <div class="chart" id="c-life"></div>
+        <figcaption>Доля вакансий, всё ещё открытых через N дней после создания. Оценка Каплана — Мейера с поправкой на то, что наблюдение началось 11 сентября: вакансии, созданные раньше, учитываются с того дня, когда мы их впервые увидели.</figcaption>
+      </figure>
+    </section>
+
+    <section class="block" id="skills">
+      <p class="eyebrow">Навыки и формат работы · hh</p>
+      <h2 id="h-skills"></h2>
+      <p class="dek">Навыки из поля «ключевые навыки», которое заполняет работодатель. Общие качества вроде «деловой коммуникации» вынесены отдельно: они есть почти везде и мало говорят о рынке.</p>
+      <figure>
+        <div class="chart" id="c-skills"></div>
+        <div class="chips" id="soft"></div>
+      </figure>
+      <figure>
+        <h3 style="font:600 .9375rem/1.3 var(--font-body)">Формат работы</h3>
+        <p class="sub" style="font-size:.8125rem;color:var(--muted);margin-top:2px">Доля открытых вакансий</p>
+        <div class="formats" id="formats" style="margin-top:16px"></div>
+      </figure>
+    </section>
+
+    <section class="block" id="history">
+      <p class="eyebrow">Десять лет · телеграм-каналы · Казахстан</p>
+      <h2 id="h-history"></h2>
+      <p class="dek">У hh нет истории: площадка отдаёт только сегодняшнюю выдачу, поэтому наш ряд начинается 11 сентября 2026 года. Глубже позволяют заглянуть телеграм-каналы с вакансиями — их архив хранится годами. Суммы в тенге, без поправки на инфляцию: за эти годы тенге заметно подешевел, поэтому реальный рост меньше номинального.</p>
+      <figure>
+        <div class="chart" id="c-history"></div>
+        <figcaption id="cap-history"></figcaption>
+      </figure>
+    </section>
+
+    <section class="block" id="method">
+      <p class="eyebrow">Методология</p>
+      <h2>Что мы считаем и чего не знаем</h2>
+      <div class="method">
+        <div><h3>Источник</h3><p>Официальный API hh: hh.kz, hh.uz и hh.kg, все 25 профессий из IT-категории hh. Сбор каждую ночь в 03:00 по Алматы. Для истории — четыре публичных телеграм-канала: @workitkz, @devkz_jobs, @findwork, @uzdev_jobs.</p></div>
+        <div><h3>Зарплата</h3><p>Середина вилки, а если указана одна граница — она. Только помесячные ставки. Переводится в доллары по курсу нацбанка своей страны на день, когда вакансия появилась. Суммы «на руки» и «до вычета» смешаны: hh указывает это не всегда.</p></div>
+        <div><h3>Порог</h3><p id="m-threshold"></p></div>
+        <div><h3>Кто указывает зарплату</h3><p>Указывают не все, и не случайно: в дорогих ролях зарплату пишут реже. Поэтому медиана по рынку, скорее всего, занижена — мы видим ту часть рынка, которая готова назвать сумму.</p></div>
+        <div><h3>«Закрылась» не значит «наняли»</h3><p>Вакансия считается закрытой, когда пропадает из выдачи. Причин много: наняли, передумали, или hh сам снял объявление через 30 дней. Отличить одно от другого по данным нельзя.</p></div>
+        <div><h3>Пропуски</h3><p id="m-gaps"></p></div>
+        <div><h3>Телеграм</h3><p>Вилки извлекаются из текста постов автоматически. Каналы удаляют часть старых постов: у @findwork нет постов за 2022–2025 годы, поэтому ряд по Кыргызстану неполный и здесь не показан.</p></div>
+        <div><h3>Что мы не публикуем</h3><p>Названия работодателей и тексты вакансий. Среди работодателей много ИП, а это имена людей. Тексты принадлежат авторам — мы показываем только агрегаты.</p></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Талап — открытый проект. Код и методология: <a href="https://github.com/kiri3914/IT-Talap">github.com/kiri3914/IT-Talap</a></span>
+    <span id="footer-updated"></span>
+  </div>
+</footer>
+
+<div id="tip" hidden></div>
+
+<script id="talap-data" type="application/json">/*__TALAP_DATA__*/</script>
+<script>
+(() => {
+  "use strict";
+  const D = JSON.parse(document.getElementById("talap-data").textContent);
+
+  // ---------- форматирование ----------
+  const nf0 = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+  const nf1 = new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const int = (v) => nf0.format(Math.round(v));
+  const usd = (v) => "$" + int(v);
+  const pct = (v) => nf1.format(v) + "%";
+  const pct0 = (v) => int(v) + "%";
+  const thousands = (v) => int(v / 1000) + " тыс.";
+  const dayLong = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
+  const dayShort = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" });
+  const dt = (s) => new Date(s + "T12:00:00");
+  const plural = (n, one, few, many) => {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return many;
+    if (b === 1) return one;
+    if (b >= 2 && b <= 4) return few;
+    return many;
+  };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  const COUNTRY = { all: "Все страны", kz: "Казахстан", uz: "Узбекистан", kg: "Кыргызстан" };
+  const IN = { all: "в трёх странах", kz: "в Казахстане", uz: "в Узбекистане", kg: "в Кыргызстане" };
+  const WD = ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const WD_LONG = ["", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"];
+  const WD_ACC = ["", "в понедельник", "во вторник", "в среду", "в четверг", "в пятницу", "в субботу", "в воскресенье"];
+  const WD_PREV = ["", "к воскресенью", "к понедельнику", "ко вторнику", "к среде", "к четвергу", "к пятнице", "к субботе"];
+
+  let scope = "all";
+  try { const s = localStorage.getItem("talap-scope"); if (s && COUNTRY[s]) scope = s; } catch (e) {}
+  const S = () => D.scopes[scope];
+  const cvar = (s) => `var(--${s})`;
+
+  // ---------- svg ----------
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent, text) {
+    const e = document.createElementNS(NS, tag);
+    if (attrs) for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function makeSvg(host, w, h, label) {
+    host.innerHTML = "";
+    const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img", "aria-label": label, preserveAspectRatio: "xMinYMin meet" });
+    host.appendChild(svg);
+    host.classList.remove("fade"); void host.offsetWidth; host.classList.add("fade");
+    return svg;
+  }
+  function niceStep(span, count) {
+    const raw = span / Math.max(count, 1);
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const m = raw / p;
+    return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
+  }
+  function ticks(lo, hi, count) {
+    const step = niceStep(hi - lo, count);
+    const out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+    return out;
+  }
+  // столбик со скруглённым концом данных и прямым основанием
+  function barV(x, y0, y1, w, r) {
+    const up = y1 < y0, h = Math.abs(y1 - y0);
+    r = Math.min(r, h, w / 2);
+    if (h < 0.5) return "";
+    if (up) return `M${x},${y0}V${y1 + r}Q${x},${y1} ${x + r},${y1}H${x + w - r}Q${x + w},${y1} ${x + w},${y1 + r}V${y0}Z`;
+    return `M${x},${y0}V${y1 - r}Q${x},${y1} ${x + r},${y1}H${x + w - r}Q${x + w},${y1} ${x + w},${y1 - r}V${y0}Z`;
+  }
+  function barH(x0, x1, y, h, r) {
+    const w = x1 - x0;
+    r = Math.min(r, w, h / 2);
+    if (w < 0.5) return "";
+    return `M${x0},${y}H${x1 - r}Q${x1},${y} ${x1},${y + r}V${y + h - r}Q${x1},${y + h} ${x1 - r},${y + h}H${x0}Z`;
+  }
+
+  // ---------- подсказка ----------
+  const tip = document.getElementById("tip");
+  function showTip(html, evt) {
+    tip.innerHTML = html;
+    tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    const pad = 14;
+    let x = evt.clientX + pad, y = evt.clientY + pad;
+    if (x + r.width > innerWidth - 8) x = evt.clientX - r.width - pad;
+    if (y + r.height > innerHeight - 8) y = evt.clientY - r.height - pad;
+    tip.style.transform = `translate(${Math.max(8, x)}px, ${Math.max(8, y)}px)`;
+  }
+  const hideTip = () => { tip.hidden = true; };
+  const row = (k, v) => `<div class="r"><span>${k}</span><b>${v}</b></div>`;
+  function hover(target, html) {
+    target.style.cursor = "default";
+    target.addEventListener("mousemove", (e) => showTip(html(), e));
+    target.addEventListener("mouseleave", hideTip);
+    target.addEventListener("touchstart", (e) => { const t = e.touches[0]; showTip(html(), t); }, { passive: true });
+  }
+  document.addEventListener("touchstart", (e) => { if (!e.target.closest(".chart")) hideTip(); }, { passive: true });
+
+  // ---------- таблица ----------
+  function table(host, head, rows) {
+    host.innerHTML = `<table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${
+      rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  }
+
+  // ---------- горизонтальные столбики ----------
+  function hbars(host, rows, opt) {
+    const W = Math.max(280, host.clientWidth || 560);
+    const narrow = W < 460;
+    const labelW = opt.labelW ? Math.min(opt.labelW, W * (narrow ? 0.46 : 0.42)) : W * 0.36;
+    const valueW = opt.valueW || 64;
+    const rowH = opt.rowH || 28, barH_ = 12;
+    const H = rows.length * rowH + 4;
+    const svg = makeSvg(host, W, H, opt.label);
+    svg.style.setProperty("--c", cvar(opt.color || scope));
+    const max = opt.max || Math.max(...rows.map((r) => r.value), 1);
+    const x0 = labelW, x1 = W - valueW;
+    rows.forEach((r, i) => {
+      const y = i * rowH;
+      const g = el("g", null, svg);
+      el("rect", { x: 0, y, width: W, height: rowH, fill: "transparent" }, g);
+      const label = el("text", { x: 0, y: y + rowH / 2 + 4, class: "t-ink2" }, g, r.label);
+      fit(label, labelW - 10);
+      el("path", { d: barH(x0, x0 + Math.max(2, ((x1 - x0) * r.value) / max), y + (rowH - barH_) / 2, barH_, 4), style: "fill:var(--c)" }, g);
+      el("text", { x: W, y: y + rowH / 2 + 4, "text-anchor": "end", class: "t-ink num" }, g, r.display);
+      if (r.tip) hover(g, r.tip);
+    });
+  }
+  // обрезка подписи по ширине — полный текст остаётся в подсказке и таблице
+  function fit(textEl, maxW) {
+    const full = textEl.textContent;
+    if (!textEl.getComputedTextLength || textEl.getComputedTextLength() <= maxW) return;
+    let s = full;
+    while (s.length > 4 && textEl.getComputedTextLength() > maxW) { s = s.slice(0, -1); textEl.textContent = s.trimEnd() + "…"; }
+    el("title", null, textEl, full);
+  }
+
+  // ---------- 1. спрос по дням ----------
+  function dailySeries() {
+    const keys = scope === "all" ? ["kz", "uz", "kg"] : [scope];
+    const rows = D.daily.map((d) => {
+      if (keys.some((k) => !d[k])) return { ...d, it: null, total: null };
+      return { ...d, it: keys.reduce((s, k) => s + d[k].it, 0), total: keys.reduce((s, k) => s + d[k].total, 0) };
+    });
+    let start = rows.findIndex((r) => r.it != null);
+    return rows.slice(Math.max(0, start));
+  }
+
+  function drawDaily() {
+    const host = document.getElementById("c-daily");
+    const rows = dailySeries();
+    const W = Math.max(300, host.clientWidth), H = W < 560 ? 260 : 320;
+    const m = { l: 48, r: W < 560 ? 54 : 70, t: 22, b: 30 };
+    const svg = makeSvg(host, W, H, `Открытые IT-вакансии по дням, ${COUNTRY[scope]}`);
+    svg.style.setProperty("--c", cvar(scope));
+    const vals = rows.map((r) => r.it).filter((v) => v != null);
+    const step = niceStep(Math.max(...vals) - Math.min(...vals), 4);
+    const lo = Math.floor((Math.min(...vals) - step * 0.4) / step) * step;
+    const hi = Math.ceil((Math.max(...vals) + step * 0.2) / step) * step;
+    const n = rows.length;
+    const bw = (W - m.l - m.r) / n;
+    const X = (i) => m.l + bw * (i + 0.5);
+    const Y = (v) => m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo));
+
+    // выходные и пропуски
+    const bands = el("g", null, svg);
+    rows.forEach((r, i) => {
+      if (r.weekday >= 6) el("rect", { x: m.l + bw * i, y: m.t, width: bw, height: H - m.t - m.b, style: "fill:var(--wash)" }, bands);
+    });
+    const gaps = rows.map((r, i) => (r.it == null ? i : -1)).filter((i) => i >= 0);
+    if (gaps.length) {
+      const pat = el("pattern", { id: "hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" }, el("defs", null, svg));
+      el("line", { x1: 0, y1: 0, x2: 0, y2: 6, style: "stroke:var(--axis);stroke-width:1.5" }, pat);
+      const g0 = gaps[0], g1 = gaps[gaps.length - 1];
+      el("rect", { x: m.l + bw * g0, y: m.t, width: bw * (g1 - g0 + 1), height: H - m.t - m.b, fill: "url(#hatch)", opacity: 0.6 }, bands);
+      el("text", { x: X((g0 + g1) / 2), y: m.t - 8, "text-anchor": "middle" }, bands, "нет данных");
+    }
+
+    const grid = el("g", { class: "grid" }, svg);
+    ticks(lo, hi, 4).forEach((v) => {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v) }, grid);
+      el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end", class: "tick" }, svg, int(v));
+    });
+    rows.forEach((r, i) => {
+      const d = dt(r.dt);
+      if (d.getDay() === 1 && X(i) > m.l + 20 && X(i) < W - m.r - 20) {
+        el("text", { x: X(i), y: H - 8, "text-anchor": "middle", class: "tick" }, svg, dayShort.format(d).replace(".", ""));
+      }
+    });
+
+    // линия и заливка по отрезкам без пропусков
+    let seg = [];
+    const segs = [];
+    rows.forEach((r, i) => { if (r.it == null) { if (seg.length) segs.push(seg); seg = []; } else seg.push([X(i), Y(r.it)]); });
+    if (seg.length) segs.push(seg);
+    segs.forEach((s) => {
+      const line = s.map((p, k) => (k ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join("");
+      el("path", { d: `${line}L${s[s.length - 1][0]},${H - m.b}L${s[0][0]},${H - m.b}Z`, style: "fill:var(--c);opacity:.08" }, svg);
+      el("path", { d: line, style: "fill:none;stroke:var(--c);stroke-width:2;stroke-linejoin:round" }, svg);
+    });
+    const lastI = rows.length - 1 - [...rows].reverse().findIndex((r) => r.it != null);
+    const last = rows[lastI];
+    el("circle", { cx: X(lastI), cy: Y(last.it), r: 4.5, style: "fill:var(--c);stroke:var(--bg);stroke-width:2" }, svg);
+    el("text", { x: X(lastI) + 10, y: Y(last.it) + 4, class: "t-strong num" }, svg, int(last.it));
+
+    // наведение: перекрестие
+    const cross = el("line", { y1: m.t, y2: H - m.b, style: "stroke:var(--axis);stroke-width:1", visibility: "hidden" }, svg);
+    const dot = el("circle", { r: 4.5, style: "fill:var(--c);stroke:var(--bg);stroke-width:2", visibility: "hidden" }, svg);
+    const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" }, svg);
+    const pick = (evt) => {
+      const p = svg.createSVGPoint(); p.x = evt.clientX; p.y = evt.clientY;
+      const loc = p.matrixTransform(svg.getScreenCTM().inverse());
+      const i = Math.max(0, Math.min(n - 1, Math.floor((loc.x - m.l) / bw)));
+      const r = rows[i];
+      cross.setAttribute("x1", X(i)); cross.setAttribute("x2", X(i)); cross.setAttribute("visibility", "visible");
+      const d = dt(r.dt);
+      const head = `<div class="h">${WD_LONG[r.weekday][0].toUpperCase() + WD_LONG[r.weekday].slice(1)}, ${dayLong.format(d)}</div>`;
+      if (r.it == null) { dot.setAttribute("visibility", "hidden"); return head + `<div class="r">Сбора не было: сервер был выключен</div>`; }
+      dot.setAttribute("cx", X(i)); dot.setAttribute("cy", Y(r.it)); dot.setAttribute("visibility", "visible");
+      return head + row("IT-вакансий", int(r.it)) + row("Всего вакансий", int(r.total)) + row("Доля IT", pct((100 * r.it) / r.total));
+    };
+    hit.addEventListener("mousemove", (e) => showTip(pick(e), e));
+    hit.addEventListener("touchmove", (e) => showTip(pick(e.touches[0]), e.touches[0]), { passive: true });
+    hit.addEventListener("touchstart", (e) => showTip(pick(e.touches[0]), e.touches[0]), { passive: true });
+    hit.addEventListener("mouseleave", () => { hideTip(); cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); });
+  }
+
+  // ---------- 2. недельный цикл ----------
+  function drawWeek() {
+    const host = document.getElementById("c-week");
+    const rows = D.weekday[scope];
+    const W = Math.max(280, host.clientWidth), H = 220;
+    const m = { l: 8, r: 8, t: 24, b: 28 };
+    const svg = makeSvg(host, W, H, "Средний прирост вакансий по дням недели");
+    svg.style.setProperty("--c", cvar(scope));
+    const amp = Math.max(...rows.map((r) => Math.abs(r.change_pct)), 1);
+    const mid = m.t + (H - m.t - m.b) / 2;
+    const half = (H - m.t - m.b) / 2 - 14;
+    const bw = (W - m.l - m.r) / 7;
+    el("line", { x1: m.l, x2: W - m.r, y1: mid, y2: mid, class: "baseline" }, svg);
+    for (let wd = 1; wd <= 7; wd++) {
+      const r = rows.find((x) => x.weekday === wd);
+      const x = m.l + bw * (wd - 1);
+      el("text", { x: x + bw / 2, y: H - 8, "text-anchor": "middle", class: wd >= 6 ? "" : "t-ink2" }, svg, WD[wd]);
+      if (!r) continue;
+      const g = el("g", null, svg);
+      el("rect", { x, y: m.t - 20, width: bw, height: H - m.t - m.b + 20, fill: "transparent" }, g);
+      const y1 = mid - (r.change_pct / amp) * half;
+      el("path", { d: barV(x + bw * 0.22, mid, y1, bw * 0.56, 4), style: "fill:var(--c)" }, g);
+      const up = r.change_pct >= 0;
+      el("text", { x: x + bw / 2, y: up ? y1 - 6 : y1 + 15, "text-anchor": "middle", class: "t-ink num" }, g,
+        (up ? "+" : "−") + nf1.format(Math.abs(r.change_pct)));
+      hover(g, () => `<div class="h">${WD_LONG[wd][0].toUpperCase() + WD_LONG[wd].slice(1)}</div>` +
+        row(`Изменение ${WD_PREV[wd]}`, (up ? "+" : "−") + pct(Math.abs(r.change_pct))) +
+        row("Недель в среднем", int(r.n)));
+    }
+  }
+
+  // ---------- 3. зарплаты по профессиям ----------
+  function profRows() {
+    return S().professions.filter((p) => p.salary).sort((a, b) => b.salary.median - a.salary.median);
+  }
+  function drawProf() {
+    const host = document.getElementById("c-prof");
+    const rows = profRows();
+    const W = Math.max(300, host.clientWidth);
+    const stacked = W < 640;
+    const labelW = stacked ? 0 : Math.min(300, W * 0.34);
+    const rowH = stacked ? 46 : 30;
+    const m = { t: 26, r: 64 };
+    const H = m.t + rows.length * rowH + 6;
+    const svg = makeSvg(host, W, H, `Зарплаты по профессиям, ${COUNTRY[scope]}`);
+    svg.style.setProperty("--c", cvar(scope));
+    const max = Math.max(...rows.map((r) => r.salary.p75)) * 1.04;
+    const x0 = labelW, x1 = W - m.r;
+    const X = (v) => x0 + ((x1 - x0) * v) / max;
+    const grid = el("g", { class: "grid" }, svg);
+    ticks(0, max, stacked ? 3 : 5).forEach((v) => {
+      el("line", { x1: X(v), x2: X(v), y1: m.t - 4, y2: H }, grid);
+      el("text", { x: X(v), y: 12, "text-anchor": "middle", class: "tick" }, svg, v === 0 ? "$0" : "$" + (v >= 1000 ? nf1.format(v / 1000).replace(",0", "") + "k" : int(v)));
+    });
+    rows.forEach((r, i) => {
+      const p = D.professions[r.code];
+      const y = m.t + i * rowH;
+      const g = el("g", null, svg);
+      el("rect", { x: 0, y, width: W, height: rowH, fill: "transparent" }, g);
+      const ty = stacked ? y + 14 : y + rowH / 2 + 4;
+      const t = el("text", { x: 0, y: ty, class: "t-ink2" }, g, p.title);
+      if (!p.core) el("tspan", { dx: 6, class: "tag", style: "font-size:10px" }, t, "смежная");
+      if (!stacked) fit(t, labelW - 12);
+      const cy = stacked ? y + 31 : y + rowH / 2;
+      el("path", { d: barH(X(r.salary.p25), X(r.salary.p75), cy - 4, 8, 4), style: "fill:var(--c);opacity:.28" }, g);
+      el("circle", { cx: X(r.salary.median), cy, r: 5, style: "fill:var(--c);stroke:var(--bg);stroke-width:2" }, g);
+      el("text", { x: W, y: cy + 4, "text-anchor": "end", class: "t-ink num" }, g, usd(r.salary.median));
+      hover(g, () => `<div class="h">${esc(p.title)}</div>` +
+        row("Медиана", usd(r.salary.median)) + row("Половина вакансий", `${usd(r.salary.p25)} – ${usd(r.salary.p75)}`) +
+        row("Вакансий с зарплатой", int(r.salary.n)) + row("Указывают зарплату", pct(r.disclosed_pct)) +
+        row("Открыто сейчас", int(r.active)));
+    });
+    const hidden = S().professions.filter((p) => !p.salary).map((p) => D.professions[p.code].title);
+    document.getElementById("cap-prof").textContent =
+      "Точка — медиана, полоса — середина распределения: от четверти до трёх четвертей вакансий. " +
+      "«Смежная» — роль из IT-категории hh, в которой много вакансий вне IT: дизайнеры интерьера, менеджеры проектов в стройке. " +
+      (hidden.length ? `Не показаны из-за малого числа вакансий с зарплатой: ${hidden.join(", ")}.` : "");
+    table(document.getElementById("t-prof"),
+      ["Профессия", "Медиана", "25%", "75%", "С зарплатой", "Указывают", "Открыто"],
+      rows.map((r) => [D.professions[r.code].title, usd(r.salary.median), usd(r.salary.p25), usd(r.salary.p75), int(r.salary.n), pct(r.disclosed_pct), int(r.active)]));
+  }
+
+  // ---------- 4. раскрытие против зарплаты ----------
+  function pearson(xs, ys) {
+    const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
+    let sxy = 0, sxx = 0, syy = 0;
+    for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; }
+    return sxy / Math.sqrt(sxx * syy);
+  }
+  function drawScatter() {
+    const host = document.getElementById("c-scatter");
+    const rows = profRows();
+    const W = Math.max(300, host.clientWidth), H = W < 560 ? 340 : 400;
+    const m = { l: 52, r: 16, t: 14, b: 40 };
+    const svg = makeSvg(host, W, H, "Доля вакансий с зарплатой и медиана зарплаты по профессиям");
+    svg.style.setProperty("--c", cvar(scope));
+    const xmax = Math.min(100, Math.ceil((Math.max(...rows.map((r) => r.disclosed_pct)) + 5) / 10) * 10);
+    const ymax = Math.ceil(Math.max(...rows.map((r) => r.salary.median)) / 500) * 500 + 250;
+    const X = (v) => m.l + ((W - m.l - m.r) * v) / xmax;
+    const Y = (v) => m.t + (H - m.t - m.b) * (1 - v / ymax);
+    const grid = el("g", { class: "grid" }, svg);
+    ticks(0, ymax, 4).forEach((v) => {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v) }, grid);
+      el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end", class: "tick" }, svg, usd(v));
+    });
+    ticks(0, xmax, W < 560 ? 4 : 8).forEach((v) => {
+      el("text", { x: X(v), y: H - m.b + 18, "text-anchor": "middle", class: "tick" }, svg, v + "%");
+    });
+    el("text", { x: W - m.r, y: H - 4, "text-anchor": "end" }, svg, "указывают зарплату →");
+
+    // точки и подписи без наложений: жадно, по убыванию заметности
+    const placed = [];
+    const overlaps = (b) => placed.some((p) => !(b.x2 < p.x1 || b.x1 > p.x2 || b.y2 < p.y1 || b.y1 > p.y2));
+    rows.forEach((r) => placed.push({ x1: X(r.disclosed_pct) - 7, x2: X(r.disclosed_pct) + 7, y1: Y(r.salary.median) - 7, y2: Y(r.salary.median) + 7 }));
+    const order = [...rows].sort((a, b) => Math.abs(b.salary.median - 1000) + Math.abs(b.disclosed_pct - 35) * 20 - (Math.abs(a.salary.median - 1000) + Math.abs(a.disclosed_pct - 35) * 20));
+    const labels = el("g", null, svg);
+    order.forEach((r) => {
+      const cx = X(r.disclosed_pct), cy = Y(r.salary.median);
+      const name = D.professions[r.code].title.split(",")[0];
+      const t = el("text", { class: "t-ink2", style: "font-size:11.5px" }, labels, name);
+      const w = t.getComputedTextLength ? t.getComputedTextLength() : name.length * 6;
+      const tries = [[cx + 10, cy + 4, "start"], [cx - 10, cy + 4, "end"], [cx, cy - 11, "middle"], [cx, cy + 18, "middle"]];
+      let ok = false;
+      for (const [tx, ty, anchor] of tries) {
+        const x1 = anchor === "start" ? tx : anchor === "end" ? tx - w : tx - w / 2;
+        const b = { x1, x2: x1 + w, y1: ty - 10, y2: ty + 3 };
+        if (b.x1 < m.l || b.x2 > W - 2 || b.y1 < 0 || b.y2 > H - m.b) continue;
+        if (overlaps(b)) continue;
+        t.setAttribute("x", tx); t.setAttribute("y", ty); t.setAttribute("text-anchor", anchor);
+        placed.push(b); ok = true; break;
+      }
+      if (!ok) t.remove();
+    });
+    rows.forEach((r) => {
+      const g = el("g", null, svg);
+      el("circle", { cx: X(r.disclosed_pct), cy: Y(r.salary.median), r: 12, fill: "transparent" }, g);
+      el("circle", { cx: X(r.disclosed_pct), cy: Y(r.salary.median), r: 5.5, style: "fill:var(--c);stroke:var(--bg);stroke-width:2" }, g);
+      const p = D.professions[r.code];
+      hover(g, () => `<div class="h">${esc(p.title)}</div>` + row("Указывают зарплату", pct(r.disclosed_pct)) + row("Медиана", usd(r.salary.median)) + row("Вакансий с зарплатой", int(r.salary.n)));
+    });
+  }
+
+  // ---------- 5. опыт ----------
+  function drawExp() {
+    const rows = S().experience;
+    hbars(document.getElementById("c-exp-share"), rows.map((r) => ({
+      label: D.experience_labels[r.code], value: r.share_pct, display: pct(r.share_pct),
+      tip: () => `<div class="h">${D.experience_labels[r.code]}</div>` + row("Доля вакансий", pct(r.share_pct)) + row("Вакансий", int(r.ads)),
+    })), { label: "Доля вакансий по опыту", labelW: 130, valueW: 54, rowH: 34 });
+    const paid = rows.filter((r) => r.salary);
+    hbars(document.getElementById("c-exp-pay"), paid.map((r) => ({
+      label: D.experience_labels[r.code], value: r.salary.median, display: usd(r.salary.median),
+      tip: () => `<div class="h">${D.experience_labels[r.code]}</div>` + row("Медиана", usd(r.salary.median)) + row("Половина вакансий", `${usd(r.salary.p25)} – ${usd(r.salary.p75)}`) + row("С зарплатой", int(r.salary.n)),
+    })), { label: "Медиана зарплаты по опыту", labelW: 130, valueW: 62, rowH: 34 });
+  }
+
+  // ---------- 6. срок жизни ----------
+  function drawLife() {
+    const host = document.getElementById("c-life");
+    const lt = S().lifetime;
+    const pts = lt.curve.filter((p) => p.day === 0 || (p.at_risk || 0) >= lt.min_risk);
+    const W = Math.max(300, host.clientWidth), H = W < 560 ? 280 : 340;
+    const m = { l: 44, r: 20, t: 20, b: 34 };
+    const svg = makeSvg(host, W, H, "Доля вакансий, открытых через N дней после создания");
+    svg.style.setProperty("--c", cvar(scope));
+    const dmax = 90;
+    const X = (d) => m.l + ((W - m.l - m.r) * d) / dmax;
+    const Y = (v) => m.t + (H - m.t - m.b) * (1 - v);
+    const grid = el("g", { class: "grid" }, svg);
+    [0, 0.25, 0.5, 0.75, 1].forEach((v) => {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v) }, grid);
+      el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end", class: "tick" }, svg, pct0(v * 100));
+    });
+    [0, 15, 30, 45, 60, 75, 90].forEach((d) => el("text", { x: X(d), y: H - m.b + 18, "text-anchor": "middle", class: "tick" }, svg, d));
+    el("text", { x: W - m.r, y: H - 2, "text-anchor": "end" }, svg, "дней с момента создания →");
+
+    // 30 дней — срок публикации на hh
+    el("line", { x1: X(30), x2: X(30), y1: m.t, y2: H - m.b, style: "stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 3" }, svg);
+    const note = el("text", { x: X(30) + 8, y: m.t + 12, class: "t-ink2", style: "font-size:12px" }, svg);
+    el("tspan", { x: X(30) + 8 }, note, "30 дней — hh снимает");
+    el("tspan", { x: X(30) + 8, dy: 15 }, note, "объявление сам");
+
+    let d = `M${X(pts[0].day)},${Y(pts[0].open)}`;
+    for (let i = 1; i < pts.length; i++) d += `H${X(pts[i].day)}V${Y(pts[i].open)}`;
+    el("path", { d: d + `V${Y(0)}H${X(0)}Z`, style: "fill:var(--c);opacity:.08" }, svg);
+    el("path", { d, style: "fill:none;stroke:var(--c);stroke-width:2" }, svg);
+    const p30 = pts.find((p) => p.day === 30);
+    if (p30) {
+      el("circle", { cx: X(30), cy: Y(p30.open), r: 5, style: "fill:var(--c);stroke:var(--bg);stroke-width:2" }, svg);
+      el("text", { x: X(30) - 10, y: Y(p30.open) - 10, "text-anchor": "end", class: "t-strong num" }, svg, pct(p30.open * 100) + " дожили");
+    }
+    const cross = el("line", { y1: m.t, y2: H - m.b, style: "stroke:var(--axis)", visibility: "hidden" }, svg);
+    const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" }, svg);
+    const pick = (evt) => {
+      const p = svg.createSVGPoint(); p.x = evt.clientX; p.y = evt.clientY;
+      const loc = p.matrixTransform(svg.getScreenCTM().inverse());
+      const day = Math.max(0, Math.min(dmax, Math.round(((loc.x - m.l) / (W - m.l - m.r)) * dmax)));
+      const pt = [...pts].reverse().find((q) => q.day <= day) || pts[0];
+      cross.setAttribute("x1", X(day)); cross.setAttribute("x2", X(day)); cross.setAttribute("visibility", "visible");
+      return `<div class="h">${day} ${plural(day, "день", "дня", "дней")} после создания</div>` + row("Ещё открыты", pct(pt.open * 100)) +
+        (pt.at_risk ? row("Под наблюдением", int(pt.at_risk)) : "");
+    };
+    hit.addEventListener("mousemove", (e) => showTip(pick(e), e));
+    hit.addEventListener("touchstart", (e) => showTip(pick(e.touches[0]), e.touches[0]), { passive: true });
+    hit.addEventListener("touchmove", (e) => showTip(pick(e.touches[0]), e.touches[0]), { passive: true });
+    hit.addEventListener("mouseleave", () => { hideTip(); cross.setAttribute("visibility", "hidden"); });
+  }
+
+  // ---------- 7. навыки, города, формат ----------
+  function drawSkills() {
+    const s = S();
+    hbars(document.getElementById("c-skills"), s.skills.slice(0, 15).map((k) => ({
+      label: k.name, value: k.share_pct, display: pct(k.share_pct),
+      tip: () => `<div class="h">${esc(k.name)}</div>` + row("Доля вакансий", pct(k.share_pct)) + row("Вакансий", int(k.ads)),
+    })), { label: "Самые частые навыки", labelW: 240, valueW: 56 });
+    document.getElementById("soft").innerHTML = '<span class="tag" style="align-self:center;margin-right:4px">Общие качества</span>' +
+      s.soft_skills.map((k) => `<span class="chip">${esc(k.name)}<b>${pct(k.share_pct)}</b></span>`).join("");
+    const labels = { ...D.format_labels, UNKNOWN: "Не указан" };
+    document.getElementById("formats").innerHTML = s.formats.filter((f) => f.code !== "UNKNOWN")
+      .map((f) => `<div><div class="v num">${pct(f.share_pct)}</div><div class="k">${esc(labels[f.code] || f.code)}</div></div>`).join("");
+  }
+  function drawCities() {
+    const s = S();
+    const total = s.kpi.active;
+    hbars(document.getElementById("c-cities"), s.cities.slice(0, 6).map((c) => ({
+      label: c.name, value: c.active, display: int(c.active),
+      tip: () => `<div class="h">${esc(c.name)}</div>` + row("Открытых IT-вакансий", int(c.active)) + row("Доля", pct((100 * c.active) / total)),
+    })), { label: "Открытые вакансии по городам", labelW: 120, valueW: 54, rowH: 30 });
+  }
+
+  // ---------- 8. десять лет ----------
+  function drawHistory() {
+    const host = document.getElementById("c-history");
+    const rows = D.telegram.filter((t) => t.country === "kz" && t.currency === "KZT");
+    const W = Math.max(300, host.clientWidth), H = W < 560 ? 280 : 340;
+    const m = { l: 60, r: 12, t: 30, b: 30 };
+    const svg = makeSvg(host, W, H, "Медиана вилки в IT-вакансиях телеграм-каналов Казахстана по годам, тенге");
+    svg.style.setProperty("--c", cvar("kz"));
+    const ymax = Math.ceil(Math.max(...rows.map((r) => r.p75)) / 250000) * 250000;
+    const bw = (W - m.l - m.r) / rows.length;
+    const Y = (v) => m.t + (H - m.t - m.b) * (1 - v / ymax);
+    const grid = el("g", { class: "grid" }, svg);
+    ticks(0, ymax, 4).forEach((v) => {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v) }, grid);
+      el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end", class: "tick" }, svg, v === 0 ? "0 ₸" : thousands(v));
+    });
+    const lastYear = D.period.last.slice(0, 4);
+    rows.forEach((r, i) => {
+      const x = m.l + bw * i, cx = x + bw / 2, w = Math.min(44, bw * 0.56);
+      const g = el("g", null, svg);
+      el("rect", { x, y: m.t - 24, width: bw, height: H - m.b - m.t + 24, fill: "transparent" }, g);
+      el("path", { d: barV(cx - w / 2, Y(0), Y(r.median), w, 4), style: "fill:var(--c)" }, g);
+      el("line", { x1: cx, x2: cx, y1: Y(r.p25), y2: Y(r.p75), style: "stroke:var(--ink-2);stroke-width:1.5" }, g);
+      el("line", { x1: cx - 5, x2: cx + 5, y1: Y(r.p75), y2: Y(r.p75), style: "stroke:var(--ink-2);stroke-width:1.5" }, g);
+      el("line", { x1: cx - 5, x2: cx + 5, y1: Y(r.p25), y2: Y(r.p25), style: "stroke:var(--ink-2);stroke-width:1.5" }, g);
+      if (bw > 38) el("text", { x: cx, y: Y(r.p75) - 8, "text-anchor": "middle", class: "t-ink num", style: "font-size:11.5px" }, g, int(r.median / 1000));
+      el("text", { x: cx, y: H - 8, "text-anchor": "middle", class: "tick" }, svg, String(r.year) === lastYear ? r.year + "*" : (bw < 34 ? "’" + String(r.year).slice(2) : r.year));
+      hover(g, () => `<div class="h">${r.year}${String(r.year) === lastYear ? " (неполный год)" : ""}</div>` +
+        row("Медиана вилки", int(r.median) + " ₸") + row("Половина вакансий", `${thousands(r.p25)} – ${thousands(r.p75)} ₸`) + row("Постов с вилкой", int(r.n)));
+    });
+    document.getElementById("cap-history").textContent =
+      "Столбик — медиана вилки в тысячах тенге, черта — от четверти до трёх четвертей вакансий. Каналы @workitkz и @devkz_jobs. " +
+      `* ${lastYear} — неполный год. Годы, где меньше 30 постов с вилкой, не показаны.`;
+  }
+
+  // ---------- тексты ----------
+  function setText() {
+    const s = S(), k = s.kpi;
+    const where = IN[scope];
+    document.getElementById("lede").innerHTML =
+      `Каждую ночь мы собираем все IT-вакансии с hh.kz, hh.uz и hh.kg и следим, что с ними происходит: ` +
+      `какие появляются, сколько предлагают, когда исчезают. Сейчас наблюдение идёт <b>${D.period.days} ${plural(D.period.days, "день", "дня", "дней")}</b>, ` +
+      `за это время мы видели <b>${int(D.scopes.all.kpi.unique_seen)}</b> ${plural(D.scopes.all.kpi.unique_seen, "вакансию", "вакансии", "вакансий")}.`;
+
+    document.getElementById("kpis").innerHTML = [
+      { v: int(k.active), k: "открытых IT-вакансий", s: COUNTRY[scope] },
+      { v: nf1.format(k.it_share_pct) + "<small>%</small>", k: "доля IT среди всех вакансий на hh", s: `${int(k.it_now)} из ${int(k.total_now)}` },
+      { v: k.salary ? usd(k.salary.median) : "—", k: "медианная зарплата в месяц", s: k.salary ? `по ${int(k.salary.n)} вакансиям с вилкой` : "мало данных" },
+      { v: int(k.disclosed_pct) + "<small>%</small>", k: "вакансий указывают зарплату", s: "среди открытых сейчас" },
+    ].map((x) => `<div class="kpi"><div class="v num">${x.v}</div><div class="k">${x.k}</div><div class="s">${x.s}</div></div>`).join("");
+
+    document.getElementById("countries").innerHTML = ["kz", "uz", "kg"].map((c) =>
+      `<span><i class="dot" style="--c:${cvar(c)}"></i>${COUNTRY[c]} <b class="num">${int(D.scopes[c].kpi.active)}</b></span>`).join("");
+
+    document.getElementById("h-demand").textContent = `Спрос на IT дышит по неделям`;
+    document.getElementById("d-demand").innerHTML =
+      `Сейчас открыто <b>${int(k.active)}</b> IT-${plural(k.active, "вакансия", "вакансии", "вакансий")} — это <b>${pct(k.it_share_pct)}</b> всех вакансий на hh ${where}. ` +
+      `К выходным часть объявлений снимают, в начале недели публикуют заново, поэтому сравнивать дни надо с тем же днём прошлой недели.`;
+
+    const wk = D.weekday[scope];
+    const worst = wk.reduce((a, b) => (b.change_pct < a.change_pct ? b : a));
+    const best = wk.reduce((a, b) => (b.change_pct > a.change_pct ? b : a));
+    document.getElementById("h-week").textContent = `Больше всего вакансий пропадает ${WD_ACC[worst.weekday]}, появляется — ${WD_ACC[best.weekday]}`;
+
+    const pr = profRows();
+    document.getElementById("h-salary").textContent = k.salary ? `Медианная IT-зарплата ${where} — ${usd(k.salary.median)} в месяц` : "Зарплаты";
+    if (pr.length) {
+      const top = pr[0], low = pr[pr.length - 1];
+      document.getElementById("d-salary").innerHTML =
+        `Больше всего предлагают в роли «${esc(D.professions[top.code].title)}» — <b>${usd(top.salary.median)}</b>, меньше всего в роли «${esc(D.professions[low.code].title)}» — <b>${usd(low.salary.median)}</b>. ` +
+        `Половина вакансий с вилкой укладывается в диапазон от <b>${usd(k.salary.p25)}</b> до <b>${usd(k.salary.p75)}</b>.`;
+      const r = pearson(pr.map((p) => p.disclosed_pct), pr.map((p) => p.salary.median));
+      document.getElementById("h-scatter").textContent = r < -0.25 ? "Чем выше зарплата, тем реже её указывают" : "Как часто указывают зарплату";
+      const lowest = [...pr].sort((a, b) => a.disclosed_pct - b.disclosed_pct)[0];
+      document.getElementById("d-scatter").textContent = r < -0.25
+        ? `Коэффициент корреляции ${nf1.format(r)}. Реже всего сумму пишут в роли «${D.professions[lowest.code].title}» — ${pct(lowest.disclosed_pct)}. Поэтому медиана по рынку, скорее всего, занижена.`
+        : `Коэффициент корреляции ${nf1.format(r)}: связи между уровнем зарплаты и готовностью её указать почти нет.`;
+    }
+
+    const ex = Object.fromEntries(s.experience.map((e) => [e.code, e]));
+    const a = ex.between1And3 && ex.between1And3.salary, b = ex.between3And6 && ex.between3And6.salary;
+    document.getElementById("h-exp").textContent = a && b ? `От 1–3 к 3–6 годам опыта зарплата растёт на ${int((b.median / a.median - 1) * 100)}%` : "Зарплата по опыту";
+
+    const lt = s.lifetime;
+    if (lt.open_at_30_pct != null) {
+      const early = 100 - lt.open_at_30_pct;
+      document.getElementById("h-life").textContent = `${int(early)}% вакансий закрывают раньше, чем их снимет hh`;
+      document.getElementById("d-life").innerHTML =
+        `Объявление на hh живёт 30 дней, потом площадка снимает его сама. До этого срока доживают <b>${pct(lt.open_at_30_pct)}</b> вакансий — их либо продлевают, либо дают исчезнуть. ` +
+        `Остальные <b>${pct(early)}</b> закрывают раньше. Мы видели закрытие <b>${int(lt.closed)}</b> ${plural(lt.closed, "вакансии", "вакансий", "вакансий")}.`;
+    } else {
+      document.getElementById("h-life").textContent = "Сколько живёт вакансия";
+      document.getElementById("d-life").textContent = "Для этой страны пока мало закрытых вакансий, чтобы оценка на 30-й день была надёжной.";
+    }
+
+    const sk = s.skills[0];
+    document.getElementById("h-skills").textContent = sk ? `${sk.name} — в каждой ${int(100 / sk.share_pct)}-й IT-вакансии` : "Навыки";
+
+    const hist = D.telegram.filter((t) => t.country === "kz" && t.currency === "KZT");
+    if (hist.length) {
+      const f = hist[0], l = hist[hist.length - 1];
+      document.getElementById("h-history").textContent = `За ${l.year - f.year} лет медиана вилки выросла с ${thousands(f.median)} до ${thousands(l.median)} ₸`;
+    }
+
+    const upd = dayLong.format(dt(D.period.last));
+    document.getElementById("updated").textContent = `Данные на ${upd}`;
+    document.getElementById("footer-updated").textContent = `Данные на ${upd} ${dt(D.period.last).getFullYear()} · обновляются каждую ночь`;
+    document.getElementById("m-threshold").textContent =
+      `Медиану показываем, только если в группе не меньше ${D.min_n} вакансий с зарплатой. Копии одного объявления в разных городах считаем один раз: так hh размножает вакансии по регионам.`;
+    const miss = D.period.missing.map((x) => dayLong.format(dt(x)));
+    document.getElementById("m-gaps").textContent = miss.length
+      ? `${miss.join(" и ")} сервер сбора не работал. Данных за ${miss.length > 1 ? "эти дни" : "этот день"} нет, и восстановить их нельзя: hh не отдаёт прошлую выдачу. На графиках пропуск заштрихован.`
+      : "Пропусков в наблюдении нет.";
+  }
+
+  // ---------- переключатель ----------
+  const seg = document.getElementById("seg");
+  seg.innerHTML = Object.keys(COUNTRY).map((c) =>
+    `<button type="button" id="seg-${c}" data-scope="${c}" aria-pressed="${c === scope}"><i class="dot" style="--c:${cvar(c)}"></i>${c === "all" ? "Все" : COUNTRY[c]}</button>`).join("");
+  seg.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b || b.dataset.scope === scope) return;
+    scope = b.dataset.scope;
+    try { localStorage.setItem("talap-scope", scope); } catch (err) {}
+    seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.scope === scope));
+    renderAll();
+  });
+
+  function renderAll() {
+    hideTip();
+    setText();
+    drawDaily(); drawWeek(); drawCities(); drawProf(); drawScatter(); drawExp(); drawLife(); drawSkills(); drawHistory();
+  }
+  let lastW = 0;
+  const ro = new ResizeObserver(() => {
+    const w = document.querySelector("main .wrap.intro").clientWidth;
+    if (Math.abs(w - lastW) > 8) { lastW = w; renderAll(); }
+  });
+  // Рисуем сразу — первый кадр не должен ждать шрифтов. Когда шрифты
+  // загрузятся, перерисовываем: от них зависят ширины подписей.
+  renderAll();
+  lastW = document.querySelector("main .wrap.intro").clientWidth;
+  ro.observe(document.body);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderAll);
+  window.addEventListener("scroll", hideTip, { passive: true });
+})();
+</script>
