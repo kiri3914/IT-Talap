@@ -1,4 +1,4 @@
-import type { Employer, Ev, Meta, Overview, Scope, Vacancy } from "./types";
+import type { Employer, Ev, Meta, Overview, Scope, TgPost, Vacancy } from "./types";
 import { MIN_N, percentileOf, quantile } from "./stats";
 
 export interface Store {
@@ -13,6 +13,7 @@ export interface Store {
   events: Ev[];
   evById: Map<string, Ev[]>;
   comps: Map<string, Array<{ ad: string; usd: number }>>;
+  telegram: TgPost[];
 }
 
 async function getJson<T>(name: string): Promise<T> {
@@ -22,12 +23,13 @@ async function getJson<T>(name: string): Promise<T> {
 }
 
 export async function loadStore(): Promise<Store> {
-  const [meta, overview, vacancies, events, employers] = await Promise.all([
+  const [meta, overview, vacancies, events, employers, telegram] = await Promise.all([
     getJson<Meta>("meta.json"),
     getJson<Overview>("overview.json"),
     getJson<Vacancy[]>("vacancies.json"),
     getJson<Ev[]>("events.json"),
     getJson<Record<string, Employer>>("employers.json"),
+    getJson<TgPost[]>("telegram.json").catch(() => [] as TgPost[]),
   ]);
   const byId = new Map(vacancies.map((v) => [v.id, v]));
   const byEmp = new Map<string, Vacancy[]>();
@@ -43,7 +45,7 @@ export async function loadStore(): Promise<Store> {
   }
   for (const arr of comps.values()) arr.sort((a, b) => a.usd - b.usd);
 
-  return { meta, overview, days: meta.days, lastIx: meta.days.length - 1, vacancies, byId, byEmp, employers, events, evById, comps };
+  return { meta, overview, days: meta.days, lastIx: meta.days.length - 1, vacancies, byId, byEmp, employers, events, evById, comps, telegram };
 }
 
 // ---------- вакансия во времени ----------

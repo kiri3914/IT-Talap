@@ -23,6 +23,7 @@ import Languages from "./pages/Languages";
 import Juniors from "./pages/Juniors";
 import Remote from "./pages/Remote";
 import MapPage from "./pages/MapPage";
+import History from "./pages/History";
 
 // ---------- каркас ----------
 
@@ -67,6 +68,7 @@ function Layout({ children }: { children: ReactNode }) {
           <NavLink to="/lang">Языки</NavLink>
           <NavLink to="/juniors">Без опыта</NavLink>
           <NavLink to="/remote">Удалёнка и релокация</NavLink>
+          <NavLink to="/history">Десять лет</NavLink>
         </div>
       </header>
       {children}
@@ -134,6 +136,7 @@ export default function App() {
               <Route path="/juniors" element={<Juniors />} />
               <Route path="/remote" element={<Remote />} />
               <Route path="/map" element={<MapPage />} />
+              <Route path="/history" element={<History />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
