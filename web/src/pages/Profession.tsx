@@ -9,6 +9,8 @@ import { quartiles } from "../model/stats";
 import { IN_COUNTRY, cityGroupLabel, dec1, fmtDayShort, int, kUsd, nVac, pct, pct0, usd } from "../model/format";
 import { Columns, DotRange, HBars, Survival, Table, head, row } from "../charts/kit";
 import { Feed } from "../components/Feed";
+import { postStats, recentPosts } from "../model/telegram";
+import { salaryText } from "../model/format";
 import { WatchButton } from "../components/Watch";
 
 const EXP_ORDER = ["noExperience", "between1And3", "between3And6", "moreThan6"];
@@ -90,6 +92,34 @@ export default function Profession() {
           </label>
           <div style={{ marginTop: 8 }}><Feed events={feed} s={s} /></div>
         </section>
+
+        {(() => {
+          const posts = recentPosts(s, 30, scope, code);
+          if (!posts.length) return null;
+          const st = postStats(posts);
+          return (
+            <section className="block">
+              <p className="eyebrow">Телеграм-каналы · 30 дней</p>
+              <h2>{nVac(st.n)} в каналах, вилка указана в {pct0(st.disclosed)}</h2>
+              <p className="dek">
+                Второй источник, независимый от hh: @workitkz, @devkz_jobs, @findwork, @uzdev_jobs. Профессию по заголовку распознают правила.
+                {st.salary && d.salary && <> Медиана в каналах — <b>{usd(st.salary.median)}</b> против <b>{usd(d.salary.median)}</b> на hh.</>}
+              </p>
+              <ul className="feed" style={{ marginTop: 14 }}>
+                {[...posts].sort((a, b) => (b[6] > a[6] ? 1 : -1)).slice(0, 8).map((p, i) => (
+                  <li key={i} className={p[3] ? "m-open" : "m-raise"}>
+                    <span className="when">{p[6].slice(8, 10)}.{p[6].slice(5, 7)}</span>
+                    <span className="mark" aria-hidden="true" />
+                    <span className="what">
+                      {p[8] ? <a href={p[8]} target="_blank" rel="noreferrer">{p[7] || "пост"}</a> : p[7]}
+                      <span className="meta">@{p[5]}{p[10] ? ` · ${p[10]}` : ""}{p[3] ? ` · ${salaryText(p[3], null, p[2]).replace("от ", "")}` : " · без вилки"}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })()}
 
         <section className="block">
           <p className="eyebrow">Спрос</p>

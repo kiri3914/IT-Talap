@@ -21,7 +21,7 @@ import csv
 import json
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import psycopg
@@ -206,14 +206,31 @@ def main() -> int:
     # На вакансиях hh правила узнают 69% заголовков и совпадают с ролью
     # работодателя в 84% случаев.
     telegram = []
+    first_rate = rates.dates[0] if rates.dates else None
+    # заголовок и ссылка нужны только свежим постам — для истории хватает года и вилки
+    recent_from = days[-1] - timedelta(days=90)
     for channel, payload in posts:
         f = parse_post(payload)
         if not f.get("is_vacancy") or not f.get("published_at"):
             continue
         lo, hi = f.get("salary_from"), f.get("salary_to")
         val = (lo + hi) / 2 if lo and hi else (lo or hi)
-        telegram.append([int(f["published_at"][:4]), f.get("country"), f.get("currency"),
-                         round(val) if val else None, guess_profession(f.get("title")), channel])
+        day = date.fromisoformat(f["published_at"][:10])
+        # В доллары — только посты периода, где есть курсы нацбанков: пересчёт
+        # 2019 года по курсу 2026-го исказил бы всё, что было до девальваций.
+        usd = None
+        if val and f.get("currency") and first_rate and day >= first_rate:
+            usd = rates.usd(val, f["currency"], day)
+            if usd is not None and not (USD_FLOOR <= usd <= USD_CEIL):
+                usd = None
+        telegram.append([
+            day.year, f.get("country"), f.get("currency"), round(val) if val else None,
+            guess_profession(f.get("title")), channel,
+            day.isoformat(),
+            *(((f.get("title") or "")[:140], f.get("url")) if day >= recent_from else ("", None)),
+            round(usd) if usd else None, f.get("city") if day >= recent_from else None,
+        ])
+
     meta = {
         "generated_at": datetime.now().astimezone().isoformat(timespec="minutes"),
         "days": [d.isoformat() for d in days],

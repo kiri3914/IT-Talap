@@ -37,8 +37,11 @@ export type EventType =
 export type Ev = [number, EventType, string, SalaryTuple | null | undefined, SalaryTuple | null | undefined];
 export type SalaryTuple = [number | null, number | null, string | null];
 
-/** Пост телеграм-канала: [год, страна, валюта, вилка, профессия, канал]. Без текста. */
-export type TgPost = [number, Country | null, string | null, number | null, string | null, string];
+/** Пост телеграм-канала, без текста: [год, страна, валюта, вилка, профессия, канал,
+ *  дата, заголовок, ссылка, вилка в $, город]. Заголовок и ссылка — только у постов
+ *  последних 90 дней. */
+export type TgPost = [number, Country | null, string | null, number | null, string | null, string,
+  string, string, string | null, number | null, string | null];
 
 export interface Employer {
   name: string;

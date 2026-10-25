@@ -6,6 +6,8 @@ import { pearson, quartiles } from "../model/stats";
 import { IN_COUNTRY, dec1, fmtDay, fmtDayShort, int, kUsd, pct, pct0, usd } from "../model/format";
 import { DotRange, HBars, LineDaily, Scatter, Survival, barV, head, row, tipProps, useWidth, Columns } from "../charts/kit";
 import type { Country } from "../model/types";
+import { postStats, recentPosts } from "../model/telegram";
+import { Table } from "../charts/kit";
 
 const WD = ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const WD_LONG = ["", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"];
@@ -174,6 +176,29 @@ export default function Market() {
             </figure>
           </div>
         </section>
+
+        {(() => {
+          // сравнение источников за период наблюдения hh — по одним и тем же профессиям
+          const days = Math.round((Date.parse(s.days[s.lastIx]) - Date.parse(s.days[0])) / 86400000);
+          const rows = d.profRows.map((p) => ({ p, tg: postStats(recentPosts(s, days, scope, p.code)) })).filter((r) => r.tg.n >= 10);
+          if (!rows.length) return null;
+          const all = postStats(recentPosts(s, days, scope));
+          return (
+            <section className="block">
+              <p className="eyebrow">Два источника</p>
+              <h2>В телеграме вилку указывают в {pct0(all.disclosed)} вакансий — против {pct0(d.disclosed)} на hh</h2>
+              <p className="dek">
+                Тот же период наблюдения, те же профессии. Каналы дают меньше вакансий, но почти всегда с зарплатой — поэтому они хорошо проверяют медианы hh,
+                которые занижены из-за того, что дорогие роли скрывают вилку.
+              </p>
+              <figure>
+                <Table head={["Профессия", "hh: с зарплатой", "hh: медиана", "Телеграм: постов", "Телеграм: с вилкой", "Телеграм: медиана"]}
+                  rows={rows.map(({ p, tg }) => [ov.professions[p.code].title, pct0(p.disclosed), usd(p.q.median), int(tg.n), pct0(tg.disclosed), tg.salary ? usd(tg.salary.median) : "—"])} />
+                <figcaption>Профессия в телеграме распознана правилами по заголовку. Показаны профессии, где за период хотя бы 10 постов.</figcaption>
+              </figure>
+            </section>
+          );
+        })()}
 
         <section className="block">
           <p className="eyebrow">Срок жизни вакансии</p>
