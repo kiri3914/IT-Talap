@@ -5,6 +5,7 @@ import { DataCtx, ScopeCtx, readScope } from "./ctx";
 import type { Scope } from "./model/types";
 import { hideTip } from "./charts/kit";
 import { Search } from "./components/Search";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Home from "./pages/Home";
 import Vacancy from "./pages/Vacancy";
 import Profession from "./pages/Profession";
@@ -25,6 +26,7 @@ import Remote from "./pages/Remote";
 import MapPage from "./pages/MapPage";
 import History from "./pages/History";
 import Resume from "./pages/Resume";
+import HardToFill from "./pages/HardToFill";
 
 // ---------- каркас ----------
 
@@ -70,10 +72,11 @@ function Layout({ children }: { children: ReactNode }) {
           <NavLink to="/lang">Языки</NavLink>
           <NavLink to="/juniors">Без опыта</NavLink>
           <NavLink to="/remote">Удалёнка и релокация</NavLink>
+          <NavLink to="/hard">Трудно закрыть</NavLink>
           <NavLink to="/history">Десять лет</NavLink>
         </div>
       </header>
-      {children}
+      <ErrorBoundary key={loc.pathname}>{children}</ErrorBoundary>
       <footer className="foot">
         <div className="wrap">Талап — внутренняя версия. Данные hh используются по условиям API для собственных нужд; публикация — после разрешения hh.</div>
       </footer>
@@ -140,6 +143,7 @@ export default function App() {
               <Route path="/map" element={<MapPage />} />
               <Route path="/history" element={<History />} />
               <Route path="/resume" element={<Resume />} />
+              <Route path="/hard" element={<HardToFill />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
