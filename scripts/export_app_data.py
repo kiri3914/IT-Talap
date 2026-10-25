@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import re
 import sys
 from collections import defaultdict
 from datetime import datetime
@@ -27,6 +26,7 @@ from pathlib import Path
 
 import psycopg
 
+from enrichment.employer import is_person
 from enrichment.profession import guess_profession
 from enrichment.telegram_fields import parse_post
 from enrichment.vacancy import ad_key, is_monthly, posting_city, salary_of
@@ -37,12 +37,6 @@ ROOT = Path(__file__).resolve().parent.parent
 MAJOR_CITIES = {"Алматы", "Астана", "Ташкент", "Бишкек"}
 DOMAIN = {"kz": "hh.kz", "uz": "hh.uz", "kg": "hh.kg"}
 
-# ИП и физлица среди работодателей: имя человека. Внутри команды видно,
-# в интерфейсе показывается как «частный работодатель».
-_PERSON = re.compile(
-    r"^(ИП|ЖК|Индивидуальный предприниматель)\b"
-    r"|(вич|вна|улы|ұлы|кызы|қызы|оглы)\b"
-)
 
 # Типы событий. Порядок — порядок важности в ленте.
 OPEN, CLOSE, RETURN, RAISE, SALARY_UP, SALARY_DOWN, SALARY_SET, SALARY_DROP = (
@@ -164,7 +158,8 @@ def main() -> int:
         if emp.get("id") and emp["id"] not in employers:
             employers[emp["id"]] = {
                 "name": emp.get("name"),
-                "person": bool(_PERSON.search(emp.get("name") or "")),
+                # физлицо: название — имя человека, в интерфейсе скрывается
+                "person": is_person(emp.get("name")),
                 "country": country,
             }
         created_raw = v.get("initial_created_at") or v.get("published_at")

@@ -19,7 +19,7 @@ from audit_pii import PERSON_EMPLOYER, mask  # noqa: E402
 
 
 @pytest.mark.parametrize("name", [
-    "МУСАЕВА УЛПАШ ИСАЕВНА",
+    "ИВАНОВА МАРИЯ ПЕТРОВНА",
     "Мусаева Улпаш Исаевна",
     "ИП Иванов И.И.",
     "ИП Захаров",
@@ -60,9 +60,9 @@ class TestМаскирование:
         assert "11 цифр" in got
 
     def test_имя(self):
-        got = mask("МУСАЕВА УЛПАШ ИСАЕВНА", "person")
-        assert "УСАЕВА" not in got
-        assert got.startswith("М")
+        got = mask("ИВАНОВА МАРИЯ ПЕТРОВНА", "person")
+        assert "ВАНОВА" not in got
+        assert got.startswith("И")
 
     def test_телеграм(self):
         got = mask("@recruiter_kz", "telegram")
