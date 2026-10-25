@@ -175,11 +175,17 @@ export function skillIndex(list: Vacancy[], minAds = 10) {
  *  техподдержкой. Это связь, а не причина: навык может просто чаще встречаться
  *  в вакансиях сильных компаний. */
 export function skillPremium(key: string, list: Vacancy[], minSide = 5) {
+  return premiumBy((v) => v.sk.some((x) => skillKey(x) === key), list, minSide);
+}
+
+/** Надбавка за любое условие — навык, английский, удалёнка — по тому же
+ *  методу: внутри одной роли и одного опыта, затем взвешенное среднее. */
+export function premiumBy(test: (v: Vacancy) => boolean, list: Vacancy[], minSide = 5) {
   const groups = new Map<string, { with: number[]; without: number[] }>();
   for (const v of uniqueAds(list)) {
     if (!v.usd || !v.p || !v.e) continue;
     const g = groups.get(`${v.p}|${v.e}`) ?? { with: [], without: [] };
-    (v.sk.some((x) => skillKey(x) === key) ? g.with : g.without).push(v.usd);
+    (test(v) ? g.with : g.without).push(v.usd);
     groups.set(`${v.p}|${v.e}`, g);
   }
   let wsum = 0, acc = 0, nWith = 0, used = 0;

@@ -75,7 +75,7 @@ export default function TimeMachine() {
         </div>
 
         <figure>
-          <LineDaily color={color} label="Открытые вакансии по дням" height={200}
+          <LineDaily color={color} label="Открытые вакансии по дням" height={200} marker={ix}
             points={s.days.map((dd, i) => ({
               key: dd, label: dd, value: series[i], weekend: [0, 6].includes(new Date(dd + "T12:00:00").getDay()),
               tick: new Date(dd + "T12:00:00").getDay() === 1 ? fmtDayShort(dd) : undefined,

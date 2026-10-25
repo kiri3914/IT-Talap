@@ -72,6 +72,12 @@ button { font: inherit; }
 .mainnav a { text-decoration: none; color: var(--ink-2); padding: 7px 10px; border-radius: 8px; }
 .mainnav a:hover { color: var(--ink); background: var(--wash); }
 .mainnav a.active { color: var(--ink); background: var(--wash-2); }
+.top .subnav { display: flex; gap: 4px 14px; flex-wrap: wrap; align-items: center; padding-block: 0 12px; font-size: 0.8125rem; }
+.subnav .tag { margin-left: 6px; }
+.subnav .tag:first-child { margin-left: 0; }
+.subnav a { text-decoration: none; color: var(--ink-2); }
+.subnav a:hover { color: var(--ink); text-decoration: underline; }
+.subnav a.active { color: var(--ink); font-weight: 600; }
 .searchbtn {
   margin-left: auto; display: inline-flex; align-items: center; gap: 10px;
   border: 1px solid var(--hair); background: var(--panel); color: var(--muted);
@@ -145,7 +151,8 @@ figcaption { margin-top: 10px; font-size: 0.8125rem; color: var(--muted); max-wi
 .tablewrap { overflow-x: auto; }
 table.data { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 0.9375rem; }
 table.data th, table.data td { text-align: right; padding: 9px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
-table.data th:first-child, table.data td:first-child { text-align: left; white-space: normal; }
+table.data th:first-child, table.data td:first-child { text-align: left; white-space: normal; min-width: 220px; }
+table.data td:nth-child(2) { white-space: normal; max-width: 240px; }
 table.data th { font-weight: 500; color: var(--muted); font-size: 0.8125rem; }
 table.data tbody tr:hover { background: var(--wash); }
 table.data a { text-decoration: none; }

@@ -170,13 +170,15 @@ export function DotRange({ rows, color, label, format }: { rows: RangeRow[]; col
 
 export interface ColRow { key: string; label: string; value: number; tip?: () => string; muted?: boolean }
 
-export function Columns({ rows, color, label, height = 200, format = (v: number) => String(Math.round(v)), showValues = true }: {
+export function Columns({ rows, color, label, height = 200, format = (v: number) => String(Math.round(v)), showValues = true, max: maxProp }: {
   rows: ColRow[]; color: string; label: string; height?: number; format?: (v: number) => string; showValues?: boolean;
+  /** общая шкала для малых множеств: иначе высоты нельзя сравнивать между графиками */
+  max?: number;
 }) {
   const [ref, W] = useWidth<HTMLDivElement>();
   if (!rows.length) return <div ref={ref} className="empty">Нет данных.</div>;
   const m = { l: 36, r: 6, t: 20, b: 26 };
-  const max = Math.max(...rows.map((r) => r.value), 1);
+  const max = maxProp ?? Math.max(...rows.map((r) => r.value), 1);
   const yTop = Math.ceil(max / niceStep(max, 3)) * niceStep(max, 3);
   const bw = (W - m.l - m.r) / rows.length;
   const Y = (v: number) => m.t + (height - m.t - m.b) * (1 - v / yTop);
@@ -314,7 +316,7 @@ export interface DayPoint { key: string; label: string; value: number | null; we
 
 /** Линия по дням: выходные — серые полосы, пропуски — штриховка, а не
  *  сглаживание. Шкала не с нуля: иначе недельные колебания не видны. */
-export function LineDaily({ points, color, label, height }: { points: DayPoint[]; color: string; label: string; height?: number }) {
+export function LineDaily({ points, color, label, height, marker }: { points: DayPoint[]; color: string; label: string; height?: number; marker?: number }) {
   const [ref, W] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
   const vals = points.map((p) => p.value).filter((v): v is number => v != null);
@@ -367,6 +369,12 @@ export function LineDaily({ points, color, label, height }: { points: DayPoint[]
         })}
         <circle cx={X(lastI)} cy={Y(points[lastI].value!)} r={4.5} style={{ fill: "var(--c)", stroke: "var(--bg)", strokeWidth: 2 }} />
         <text x={X(lastI) + 10} y={Y(points[lastI].value!) + 4} className="t-strong num">{Math.round(points[lastI].value!).toLocaleString("ru-RU")}</text>
+        {marker != null && points[marker] && (
+          <>
+            <line x1={X(marker)} x2={X(marker)} y1={m.t} y2={H - m.b} style={{ stroke: "var(--ink)", strokeWidth: 1.5 }} />
+            {points[marker].value != null && <circle cx={X(marker)} cy={Y(points[marker].value!)} r={5} style={{ fill: "var(--ink)", stroke: "var(--bg)", strokeWidth: 2 }} />}
+          </>
+        )}
         {hover != null && (
           <>
             <line x1={X(hover)} x2={X(hover)} y1={m.t} y2={H - m.b} style={{ stroke: "var(--axis)" }} />

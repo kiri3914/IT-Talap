@@ -18,6 +18,11 @@ import Market from "./pages/Market";
 import Method from "./pages/Method";
 import Explorer from "./pages/Explorer";
 import TimeMachine from "./pages/TimeMachine";
+import Compare from "./pages/Compare";
+import Languages from "./pages/Languages";
+import Juniors from "./pages/Juniors";
+import Remote from "./pages/Remote";
+import MapPage from "./pages/MapPage";
 
 // ---------- каркас ----------
 
@@ -44,15 +49,24 @@ function Layout({ children }: { children: ReactNode }) {
             <NavLink to="/p">Профессии</NavLink>
             <NavLink to="/c">Компании</NavLink>
             <NavLink to="/s">Навыки</NavLink>
-            <NavLink to="/calc">Калькулятор</NavLink>
-            <NavLink to="/x">Конструктор</NavLink>
-            <NavLink to="/time">Машина времени</NavLink>
             <NavLink to="/method">Методология</NavLink>
           </nav>
           <button type="button" className="searchbtn" onClick={() => setSearchOpen(true)}>
             Поиск или ссылка на вакансию <kbd>⌘K</kbd>
           </button>
           <span className="private" title="Данные по отдельным вакансиям. Публикация — после разрешения hh.">не для публикации</span>
+        </div>
+        <div className="wrap subnav">
+          <span className="tag">Инструменты</span>
+          <NavLink to="/calc">Калькулятор</NavLink>
+          <NavLink to="/x">Конструктор</NavLink>
+          <NavLink to="/compare">Сравнение</NavLink>
+          <NavLink to="/time">Машина времени</NavLink>
+          <NavLink to="/map">Карта</NavLink>
+          <span className="tag">Сюжеты</span>
+          <NavLink to="/lang">Языки</NavLink>
+          <NavLink to="/juniors">Без опыта</NavLink>
+          <NavLink to="/remote">Удалёнка и релокация</NavLink>
         </div>
       </header>
       {children}
@@ -115,6 +129,11 @@ export default function App() {
               <Route path="/method" element={<Method />} />
               <Route path="/x" element={<Explorer />} />
               <Route path="/time" element={<TimeMachine />} />
+              <Route path="/compare" element={<Compare />} />
+              <Route path="/lang" element={<Languages />} />
+              <Route path="/juniors" element={<Juniors />} />
+              <Route path="/remote" element={<Remote />} />
+              <Route path="/map" element={<MapPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
