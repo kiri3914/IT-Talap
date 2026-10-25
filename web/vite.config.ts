@@ -6,4 +6,7 @@ export default defineConfig({
   plugins: [react()],
   base: "./",
   server: { port: 5180, host: "127.0.0.1" },
+  // pdf.js использует await верхнего уровня — нужна цель ES2022
+  build: { target: "es2022" },
+  optimizeDeps: { esbuildOptions: { target: "es2022" } },
 });

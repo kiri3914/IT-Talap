@@ -1,0 +1,233 @@
+[
+ [
+  "cto",
+  [
+   "\\bcto\\b",
+   "технический директор"
+  ]
+ ],
+ [
+  "cio",
+  [
+   "\\bcio\\b",
+   "директор по (ит|информационным)"
+  ]
+ ],
+ [
+  "dev_lead",
+  [
+   "\\b(team ?lead|тимлид|tech ?lead|head of (engineering|development))\\b",
+   "руководител\\w* (отдела |группы )?разработки"
+  ]
+ ],
+ [
+  "analytics_lead",
+  [
+   "head of (data|analytics)",
+   "руководител\\w* (отдела )?аналитик"
+  ]
+ ],
+ [
+  "devops",
+  [
+   "dev ?ops",
+   "\\bsre\\b",
+   "site reliability",
+   "devsecops",
+   "platform engineer",
+   "kubernetes"
+  ]
+ ],
+ [
+  "security",
+  [
+   "информационн\\w* безопасност",
+   "\\bиб\\b",
+   "security",
+   "пентест",
+   "pentest",
+   "soc[- ]аналитик",
+   "кибербезопасн"
+  ]
+ ],
+ [
+  "data_scientist",
+  [
+   "data scien",
+   "дата[- ]?сайент",
+   "\\bml\\b",
+   "machine learning",
+   "машинн\\w* обучени",
+   "\\bnlp\\b",
+   "computer vision",
+   "\\bai engineer",
+   "\\bllm\\b"
+  ]
+ ],
+ [
+  "data_analyst",
+  [
+   "data analyst",
+   "аналитик данных",
+   "\\bbi\\b",
+   "bi[- ]аналитик",
+   "bi[- ]разработчик",
+   "data engineer",
+   "инженер данных",
+   "\\betl\\b",
+   "dwh"
+  ]
+ ],
+ [
+  "product_analyst",
+  [
+   "product analyst",
+   "продуктов\\w* аналитик"
+  ]
+ ],
+ [
+  "systems_analyst",
+  [
+   "system analyst",
+   "системн\\w* аналитик"
+  ]
+ ],
+ [
+  "business_analyst",
+  [
+   "business analyst",
+   "бизнес[- ]аналитик"
+  ]
+ ],
+ [
+  "qa",
+  [
+   "\\bqa\\b",
+   "\\baqa\\b",
+   "тестировщ",
+   "tester",
+   "quality assurance",
+   "автотест"
+  ]
+ ],
+ [
+  "product_manager",
+  [
+   "product manager",
+   "product owner",
+   "продакт",
+   "менеджер продукта",
+   "владелец продукта"
+  ]
+ ],
+ [
+  "project_manager",
+  [
+   "project manager",
+   "проджект",
+   "руководител\\w* проект",
+   "менеджер проект",
+   "\\bpm\\b",
+   "scrum master",
+   "delivery manager"
+  ]
+ ],
+ [
+  "game_designer",
+  [
+   "game ?designer",
+   "гейм[- ]?дизайн",
+   "геймдизайн"
+  ]
+ ],
+ [
+  "art_director",
+  [
+   "art director",
+   "арт[- ]директор",
+   "креативн\\w* директор"
+  ]
+ ],
+ [
+  "designer",
+  [
+   "дизайнер",
+   "designer",
+   "\\bui\\b",
+   "\\bux\\b",
+   "motion",
+   "иллюстратор",
+   "3d[- ]?(artist|художник)",
+   "художник"
+  ]
+ ],
+ [
+  "tech_writer",
+  [
+   "technical writer",
+   "техническ\\w* писател"
+  ]
+ ],
+ [
+  "network_engineer",
+  [
+   "сетев\\w* инженер",
+   "network engineer",
+   "\\bccna\\b"
+  ]
+ ],
+ [
+  "systems_engineer",
+  [
+   "системн\\w* инженер",
+   "system engineer",
+   "инженер[- ]систем"
+  ]
+ ],
+ [
+  "sysadmin",
+  [
+   "системн\\w* администратор",
+   "сисадмин",
+   "sysadmin",
+   "system administrator",
+   "администратор (сети|серверов)"
+  ]
+ ],
+ [
+  "support",
+  [
+   "техническ\\w* поддержк",
+   "support",
+   "help ?desk",
+   "хелпдеск",
+   "service ?desk",
+   "оператор",
+   "специалист поддержки"
+  ]
+ ],
+ [
+  "analyst",
+  [
+   "аналитик",
+   "analyst"
+  ]
+ ],
+ [
+  "developer",
+  [
+   "разработчик",
+   "программист",
+   "developer",
+   "engineer",
+   "backend",
+   "frontend",
+   "front-end",
+   "back-end",
+   "fullstack",
+   "full-stack",
+   "\\b(python|java|golang|go|php|ruby|node\\.?js|react|vue|angular|ios|android|flutter|kotlin)\\b",
+   "\\b(swift|c#|\\.net|c\\+\\+|1с|1c|laravel|django)\\b"
+  ]
+ ]
+]

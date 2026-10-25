@@ -37,3 +37,12 @@ def test_распознаёт(title, expected):
 @pytest.mark.parametrize("title", [None, "", "Бухгалтер", "Водитель категории B"])
 def test_не_выдумывает(title):
     assert guess_profession(title) is None
+
+
+def test_правила_для_приложения_не_устарели():
+    """Браузер берёт правила из сгенерированного JSON — он обязан совпадать с Python."""
+    from scripts.gen_profession_rules import OUT, render
+
+    assert OUT.read_text(encoding="utf-8") == render(), (
+        "professionRules.json устарел: python -m scripts.gen_profession_rules"
+    )
