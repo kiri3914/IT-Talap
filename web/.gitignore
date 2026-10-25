@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# данные по отдельным вакансиям — не коммитить (см. корневой .gitignore)
+public/data/
