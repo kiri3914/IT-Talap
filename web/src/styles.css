@@ -250,3 +250,12 @@ footer.foot { border-top: 1px solid var(--hair); padding-block: 24px 40px; font-
 /* тёмная подложка карты: инверсия стандартных тайлов OSM */
 .map-dark .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6); }
 .leaflet-container { background: var(--wash); font-family: var(--font-body); }
+
+/* на телефоне навигация — одной строкой с прокруткой вбок, а не шесть строк переносов */
+@media (max-width: 700px) {
+  .top .wrap { gap: 12px; padding-block: 10px; }
+  .mainnav, .top .subnav { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; width: 100%; scrollbar-width: none; }
+  .mainnav::-webkit-scrollbar, .top .subnav::-webkit-scrollbar { display: none; }
+  .top .subnav { padding-block: 0 10px; }
+  .searchbtn { flex: 1 1 auto; }
+}
