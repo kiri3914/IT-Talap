@@ -5,10 +5,10 @@
 ## Первый раз
 
 ```bash
-ssh kiri@31.58.244.248
+ssh <user>@<server>
 
 # Ключ для доступа к приватному репозиторию
-ssh-keygen -t ed25519 -C "kiri@talap-server"
+ssh-keygen -t ed25519 -C "<user>@talap-server"
 cat ~/.ssh/id_ed25519.pub
 # → добавить в GitHub: Settings → SSH and GPG keys → New SSH key
 ssh -T git@github.com     # должно ответить "Hi kiri3914!"
@@ -177,7 +177,7 @@ docker ps -a | grep minio
 Порты слушают только `127.0.0.1` — наружу MinIO не выставлен. Консоль смотреть через туннель с рабочей машины:
 
 ```bash
-ssh -L 9001:localhost:9001 kiri@31.58.244.248
+ssh -L 9001:localhost:9001 <user>@<server>
 # затем http://localhost:9001 в браузере
 ```
 
@@ -280,7 +280,7 @@ S3_ENDPOINT_URL=http://127.0.0.1:9010
 Консоль смотреть через туннель:
 
 ```bash
-ssh -L 9011:localhost:9011 kiri@31.58.244.248
+ssh -L 9011:localhost:9011 <user>@<server>
 # http://localhost:9011
 ```
 
@@ -327,7 +327,7 @@ docker exec -it talap-postgres psql -U talap -d talap -c "
 ### Подключиться к базе с ноутбука
 
 ```bash
-ssh -L 5442:localhost:5442 kiri@31.58.244.248
+ssh -L 5442:localhost:5442 <user>@<server>
 # dbeaver / psql на 127.0.0.1:5442
 ```
 

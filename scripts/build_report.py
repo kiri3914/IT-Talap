@@ -312,7 +312,7 @@ def main() -> int:
     out.write_text(page, encoding="utf-8")
     print(f"готово: {out.resolve()}  ({len(page) // 1024} КБ, {len(vacancies)} вакансий)")
     print("Скачать к себе:")
-    print(f"  scp kiri@31.58.244.248:{out.resolve()} .")
+    print(f"  scp <user>@<server>:{out.resolve()} .")
     return 0
 
 

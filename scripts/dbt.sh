@@ -47,7 +47,7 @@ case "${1:-build}" in
     cd dbt
     "$VENV/bin/dbt" docs generate
     echo "Документация и lineage: http://localhost:8081"
-    echo "С ноутбука: ssh -L 8081:localhost:8081 kiri@31.58.244.248"
+    echo "С ноутбука: ssh -L 8081:localhost:8081 <user>@<server>"
     "$VENV/bin/dbt" docs serve --port 8081
     ;;
 
