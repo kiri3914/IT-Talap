@@ -307,3 +307,123 @@ export function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
     </div>
   );
 }
+
+// ---------- ряд по дням ----------
+
+export interface DayPoint { key: string; label: string; value: number | null; weekend: boolean; tip: () => string; tick?: string }
+
+/** Линия по дням: выходные — серые полосы, пропуски — штриховка, а не
+ *  сглаживание. Шкала не с нуля: иначе недельные колебания не видны. */
+export function LineDaily({ points, color, label, height }: { points: DayPoint[]; color: string; label: string; height?: number }) {
+  const [ref, W] = useWidth<HTMLDivElement>();
+  const [hover, setHover] = useState<number | null>(null);
+  const vals = points.map((p) => p.value).filter((v): v is number => v != null);
+  if (vals.length < 2) return <div ref={ref} className="empty">Мало данных.</div>;
+  const H = height ?? (W < 560 ? 240 : 300), m = { l: 48, r: W < 560 ? 50 : 64, t: 22, b: 28 };
+  const step = niceStep(Math.max(...vals) - Math.min(...vals) || 1, 4);
+  const lo = Math.floor((Math.min(...vals) - step * 0.4) / step) * step;
+  const hi = Math.ceil((Math.max(...vals) + step * 0.2) / step) * step;
+  const bw = (W - m.l - m.r) / points.length;
+  const X = (i: number) => m.l + bw * (i + 0.5);
+  const Y = (v: number) => m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo));
+  const segs: Array<Array<[number, number]>> = [];
+  let cur: Array<[number, number]> = [];
+  points.forEach((p, i) => { if (p.value == null) { if (cur.length) segs.push(cur); cur = []; } else cur.push([X(i), Y(p.value)]); });
+  if (cur.length) segs.push(cur);
+  const gaps = points.map((p, i) => (p.value == null ? i : -1)).filter((i) => i >= 0);
+  let lastI = points.length - 1;
+  while (lastI > 0 && points[lastI].value == null) lastI--;
+  const pick = (e: React.MouseEvent<SVGRectElement> | React.Touch, svg: SVGSVGElement) => {
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const loc = pt.matrixTransform(svg.getScreenCTM()!.inverse());
+    return Math.max(0, Math.min(points.length - 1, Math.floor((loc.x - m.l) / bw)));
+  };
+  return (
+    <div ref={ref} className="chart">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} style={{ ["--c" as string]: color }}>
+        <defs>
+          <pattern id="hatch" width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1={0} y1={0} x2={0} y2={6} style={{ stroke: "var(--axis)", strokeWidth: 1.5 }} />
+          </pattern>
+        </defs>
+        {points.map((p, i) => p.weekend && <rect key={p.key} x={m.l + bw * i} y={m.t} width={bw} height={H - m.t - m.b} style={{ fill: "var(--wash)" }} />)}
+        {gaps.length > 0 && (
+          <>
+            <rect x={m.l + bw * gaps[0]} y={m.t} width={bw * (gaps[gaps.length - 1] - gaps[0] + 1)} height={H - m.t - m.b} fill="url(#hatch)" opacity={0.6} />
+            <text x={X((gaps[0] + gaps[gaps.length - 1]) / 2)} y={m.t - 8} textAnchor="middle">нет данных</text>
+          </>
+        )}
+        <g className="grid">{ticks(lo, hi, 4).map((v) => <line key={v} x1={m.l} x2={W - m.r} y1={Y(v)} y2={Y(v)} />)}</g>
+        {ticks(lo, hi, 4).map((v) => <text key={v} x={m.l - 8} y={Y(v) + 4} textAnchor="end" className="tick">{Math.round(v).toLocaleString("ru-RU")}</text>)}
+        {points.map((p, i) => p.tick && X(i) > m.l + 18 && X(i) < W - m.r - 18 && <text key={p.key} x={X(i)} y={H - 8} textAnchor="middle" className="tick">{p.tick}</text>)}
+        {segs.map((sg, k) => {
+          const d = sg.map((q, j) => `${j ? "L" : "M"}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join("");
+          return (
+            <g key={k}>
+              <path d={`${d}L${sg[sg.length - 1][0]},${H - m.b}L${sg[0][0]},${H - m.b}Z`} style={{ fill: "var(--c)", opacity: 0.08 }} />
+              <path d={d} style={{ fill: "none", stroke: "var(--c)", strokeWidth: 2, strokeLinejoin: "round" }} />
+            </g>
+          );
+        })}
+        <circle cx={X(lastI)} cy={Y(points[lastI].value!)} r={4.5} style={{ fill: "var(--c)", stroke: "var(--bg)", strokeWidth: 2 }} />
+        <text x={X(lastI) + 10} y={Y(points[lastI].value!) + 4} className="t-strong num">{Math.round(points[lastI].value!).toLocaleString("ru-RU")}</text>
+        {hover != null && (
+          <>
+            <line x1={X(hover)} x2={X(hover)} y1={m.t} y2={H - m.b} style={{ stroke: "var(--axis)" }} />
+            {points[hover].value != null && <circle cx={X(hover)} cy={Y(points[hover].value!)} r={4.5} style={{ fill: "var(--c)", stroke: "var(--bg)", strokeWidth: 2 }} />}
+          </>
+        )}
+        <rect x={m.l} y={m.t} width={W - m.l - m.r} height={H - m.t - m.b} fill="transparent"
+          onMouseMove={(e) => { const i = pick(e, e.currentTarget.ownerSVGElement!); setHover(i); showTip(points[i].tip(), e); }}
+          onTouchStart={(e) => { const t = e.touches[0]; const i = pick(t, e.currentTarget.ownerSVGElement!); setHover(i); showTip(points[i].tip(), t); }}
+          onMouseLeave={() => { setHover(null); hideTip(); }} />
+      </svg>
+    </div>
+  );
+}
+
+// ---------- точечная диаграмма ----------
+
+export interface ScatterPoint { key: string; x: number; y: number; label: string; tip: () => string; href?: string }
+
+export function Scatter({ points, color, label, xLabel, xFmt, yFmt }: {
+  points: ScatterPoint[]; color: string; label: string; xLabel: string; xFmt: (v: number) => string; yFmt: (v: number) => string;
+}) {
+  const [ref, W] = useWidth<HTMLDivElement>();
+  const nav = useNavigate();
+  if (points.length < 3) return <div ref={ref} className="empty">Мало данных.</div>;
+  const H = W < 560 ? 340 : 400, m = { l: 56, r: 16, t: 14, b: 40 };
+  const xmax = Math.max(...points.map((p) => p.x)) * 1.08, ymax = Math.max(...points.map((p) => p.y)) * 1.1;
+  const X = (v: number) => m.l + ((W - m.l - m.r) * v) / xmax;
+  const Y = (v: number) => m.t + (H - m.t - m.b) * (1 - v / ymax);
+  // подписи без наложений: жадная раскладка, что не влезло — остаётся в подсказке
+  const boxes: Array<{ x1: number; x2: number; y1: number; y2: number }> = points.map((p) => ({ x1: X(p.x) - 7, x2: X(p.x) + 7, y1: Y(p.y) - 7, y2: Y(p.y) + 7 }));
+  const hit = (b: typeof boxes[0]) => boxes.some((o) => !(b.x2 < o.x1 || b.x1 > o.x2 || b.y2 < o.y1 || b.y1 > o.y2));
+  const labels: Array<{ key: string; x: number; y: number; anchor: "start" | "end" | "middle"; text: string }> = [];
+  for (const p of [...points].sort((a, b) => b.y - a.y)) {
+    const cx = X(p.x), cy = Y(p.y), w = p.label.length * 6.4;
+    for (const [tx, ty, anchor] of [[cx + 10, cy + 4, "start"], [cx - 10, cy + 4, "end"], [cx, cy - 11, "middle"], [cx, cy + 18, "middle"]] as const) {
+      const x1 = anchor === "start" ? tx : anchor === "end" ? tx - w : tx - w / 2;
+      const b = { x1, x2: x1 + w, y1: ty - 10, y2: ty + 3 };
+      if (b.x1 < m.l || b.x2 > W - 2 || b.y1 < 0 || b.y2 > H - m.b || hit(b)) continue;
+      boxes.push(b); labels.push({ key: p.key, x: tx, y: ty, anchor, text: p.label }); break;
+    }
+  }
+  return (
+    <div ref={ref} className="chart">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} style={{ ["--c" as string]: color }}>
+        <g className="grid">{ticks(0, ymax, 4).map((v) => <line key={v} x1={m.l} x2={W - m.r} y1={Y(v)} y2={Y(v)} />)}</g>
+        {ticks(0, ymax, 4).map((v) => <text key={v} x={m.l - 8} y={Y(v) + 4} textAnchor="end" className="tick">{yFmt(v)}</text>)}
+        {ticks(0, xmax, W < 560 ? 4 : 8).map((v) => <text key={v} x={X(v)} y={H - m.b + 18} textAnchor="middle" className="tick">{xFmt(v)}</text>)}
+        <text x={W - m.r} y={H - 4} textAnchor="end">{xLabel}</text>
+        {labels.map((l) => <text key={l.key} x={l.x} y={l.y} textAnchor={l.anchor} className="t-ink2" style={{ fontSize: 11.5 }}>{l.text}</text>)}
+        {points.map((p) => (
+          <g key={p.key} {...tipProps(p.tip)} onClick={p.href ? () => nav(p.href!) : undefined} style={{ cursor: p.href ? "pointer" : "default" }}>
+            <circle cx={X(p.x)} cy={Y(p.y)} r={12} fill="transparent" />
+            <circle cx={X(p.x)} cy={Y(p.y)} r={5.5} style={{ fill: "var(--c)", stroke: "var(--bg)", strokeWidth: 2 }} />
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { scopeColor, useStore } from "../App";
+import { scopeColor, useStore } from "../ctx";
 import { type Store, ageDays, employerName, employerPay, estimate, firstIx, isActive, lastSeenIx, uniqueAds } from "../model/store";
 import { disclosure, lifetime, windowStart } from "../model/derive";
 import type { Ev, Vacancy as V } from "../model/types";

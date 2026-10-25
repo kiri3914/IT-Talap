@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ScopeBar, useScope, useStore } from "../App";
+import { ScopeBar, useScope, useStore } from "../ctx";
 import { firstIx, inScope, isActive, uniqueAds } from "../model/store";
 import { disclosure, windowStart } from "../model/derive";
 import { IN_COUNTRY, int, pct0 } from "../model/format";

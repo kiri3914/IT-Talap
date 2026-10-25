@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ScopeBar, scopeColor, useScope, useStore } from "../App";
+import { ScopeBar, scopeColor, useScope, useStore } from "../ctx";
 import { ageDays, employerName, firstIx, inScope, isActive, uniqueAds } from "../model/store";
 import {
   countEvents, disclosure, eventsFor, hiringEmployers, languageStats, lifetime, opensByWeek, salaryBy, shareBy, skillStats, windowStart,

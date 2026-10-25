@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { scopeColor, useStore } from "../App";
+import { scopeColor, useStore } from "../ctx";
 import { ageDays, estimate, firstIx, isActive, uniqueAds } from "../model/store";
 import { countEvents, disclosure, eventsFor, lifetime, opensByWeek, shareBy, skillStats, windowStart } from "../model/derive";
 import { median } from "../model/stats";

@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { loadStore, type Store } from "./model/store";
+import { DataCtx, ScopeCtx, readScope } from "./ctx";
 import type { Scope } from "./model/types";
-import { COUNTRY, fmtDay } from "./model/format";
 import { hideTip } from "./charts/kit";
 import { Search } from "./components/Search";
 import Home from "./pages/Home";
@@ -11,50 +11,11 @@ import Profession from "./pages/Profession";
 import Professions from "./pages/Professions";
 import Company from "./pages/Company";
 import Companies from "./pages/Companies";
-
-// ---------- данные ----------
-
-const DataCtx = createContext<Store | null>(null);
-export function useStore(): Store {
-  const s = useContext(DataCtx);
-  if (!s) throw new Error("Store не загружен");
-  return s;
-}
-
-// ---------- страна ----------
-
-const ScopeCtx = createContext<[Scope, (s: Scope) => void]>(["all", () => {}]);
-export const useScope = () => useContext(ScopeCtx);
-export const scopeColor = (s: Scope | string) => `var(--${s})`;
-
-function readScope(): Scope {
-  try {
-    const v = localStorage.getItem("talap-scope");
-    if (v && v in COUNTRY) return v as Scope;
-  } catch { /* приватный режим — просто без памяти */ }
-  return "all";
-}
-
-export function ScopeBar() {
-  const [scope, setScope] = useScope();
-  const s = useStore();
-  return (
-    <div className="scopebar">
-      <div className="wrap">
-        <span className="label" id="scope-label">Страна</span>
-        <div className="seg" role="group" aria-labelledby="scope-label">
-          {(Object.keys(COUNTRY) as Scope[]).map((c) => (
-            <button key={c} type="button" id={`scope-${c}`} aria-pressed={c === scope} onClick={() => setScope(c)}>
-              <i className="dot" style={{ ["--c" as string]: scopeColor(c) }} />
-              {c === "all" ? "Все" : COUNTRY[c]}
-            </button>
-          ))}
-        </div>
-        <span className="updated">Данные на {fmtDay(s.days[s.lastIx])}</span>
-      </div>
-    </div>
-  );
-}
+import Skills from "./pages/Skills";
+import Skill from "./pages/Skill";
+import Calculator from "./pages/Calculator";
+import Market from "./pages/Market";
+import Method from "./pages/Method";
 
 // ---------- каркас ----------
 
@@ -76,9 +37,13 @@ function Layout({ children }: { children: ReactNode }) {
         <div className="wrap">
           <NavLink to="/" className="logo">Талап</NavLink>
           <nav className="mainnav" aria-label="Разделы">
-            <NavLink to="/" end>Обзор</NavLink>
+            <NavLink to="/" end>Главная</NavLink>
+            <NavLink to="/m">Рынок</NavLink>
             <NavLink to="/p">Профессии</NavLink>
             <NavLink to="/c">Компании</NavLink>
+            <NavLink to="/s">Навыки</NavLink>
+            <NavLink to="/calc">Калькулятор</NavLink>
+            <NavLink to="/method">Методология</NavLink>
           </nav>
           <button type="button" className="searchbtn" onClick={() => setSearchOpen(true)}>
             Поиск или ссылка на вакансию <kbd>⌘K</kbd>
@@ -139,6 +104,11 @@ export default function App() {
               <Route path="/p/:code" element={<Profession />} />
               <Route path="/c" element={<Companies />} />
               <Route path="/c/:id" element={<Company />} />
+              <Route path="/s" element={<Skills />} />
+              <Route path="/s/:key" element={<Skill />} />
+              <Route path="/calc" element={<Calculator />} />
+              <Route path="/m" element={<Market />} />
+              <Route path="/method" element={<Method />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

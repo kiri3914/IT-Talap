@@ -146,3 +146,65 @@ export function languageStats(list: Vacancy[]) {
 export const activeCount = (list: Vacancy[], s: Store) => list.filter((v) => isActive(v, s)).length;
 export const activeOnCount = (list: Vacancy[], ix: number) => list.filter((v) => activeOn(v, ix)).length;
 export { quartiles };
+
+// ---------- навыки ----------
+
+export const skillKey = (name: string) => name.trim().toLowerCase();
+
+/** Все навыки с числом вакансий; редкие отсекаются — по ним ничего не скажешь. */
+export function skillIndex(list: Vacancy[], minAds = 10) {
+  const m = new Map<string, { key: string; name: string; n: number; names: Map<string, number> }>();
+  for (const v of uniqueAds(list)) {
+    for (const name of v.sk) {
+      const k = skillKey(name);
+      const r = m.get(k) ?? { key: k, name, n: 0, names: new Map() };
+      r.names.set(name, (r.names.get(name) ?? 0) + 1);
+      m.set(k, r);
+    }
+    for (const k of new Set(v.sk.map(skillKey))) m.get(k)!.n++;
+  }
+  return [...m.values()]
+    .filter((r) => r.n >= minAds)
+    .map((r) => ({ key: r.key, n: r.n, name: [...r.names.entries()].sort((a, b) => b[1] - a[1])[0][0] }))
+    .sort((a, b) => b.n - a.n);
+}
+
+/** Надбавка за навык: медиана с навыком против медианы без него ВНУТРИ одной
+ *  роли и одного опыта, затем среднее по группам с весом по размеру меньшей
+ *  стороны. Без этого «надбавка» Kubernetes была бы разницей между DevOps и
+ *  техподдержкой. Это связь, а не причина: навык может просто чаще встречаться
+ *  в вакансиях сильных компаний. */
+export function skillPremium(key: string, list: Vacancy[], minSide = 5) {
+  const groups = new Map<string, { with: number[]; without: number[] }>();
+  for (const v of uniqueAds(list)) {
+    if (!v.usd || !v.p || !v.e) continue;
+    const g = groups.get(`${v.p}|${v.e}`) ?? { with: [], without: [] };
+    (v.sk.some((x) => skillKey(x) === key) ? g.with : g.without).push(v.usd);
+    groups.set(`${v.p}|${v.e}`, g);
+  }
+  let wsum = 0, acc = 0, nWith = 0, used = 0;
+  for (const g of groups.values()) {
+    if (g.with.length < minSide || g.without.length < minSide) continue;
+    const mw = quartiles(g.with, 1)!.median, mo = quartiles(g.without, 1)!.median;
+    const w = Math.min(g.with.length, g.without.length);
+    acc += w * Math.log(mw / mo);
+    wsum += w; nWith += g.with.length; used++;
+  }
+  if (nWith < 15 || !used) return null;
+  return { pct: 100 * (Math.exp(acc / wsum) - 1), nWith, groups: used };
+}
+
+/** С какими навыками встречается вместе — доля вакансий с навыком, где есть и второй. */
+export function coSkills(key: string, list: Vacancy[], top = 12) {
+  const withSkill = uniqueAds(list).filter((v) => v.sk.some((x) => skillKey(x) === key));
+  const m = new Map<string, { name: string; n: number }>();
+  for (const v of withSkill) for (const name of v.sk) {
+    const k = skillKey(name);
+    if (k === key) continue;
+    const r = m.get(k) ?? { name, n: 0 };
+    r.n++;
+    m.set(k, r);
+  }
+  return [...m.entries()].map(([k, r]) => ({ key: k, name: r.name, share: (100 * r.n) / Math.max(withSkill.length, 1), n: r.n }))
+    .sort((a, b) => b.n - a.n).slice(0, top);
+}

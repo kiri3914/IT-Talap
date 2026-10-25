@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useStore } from "../App";
+import { useStore } from "../ctx";
 import { uniqueAds } from "../model/store";
 import { nVac } from "../model/format";
 
