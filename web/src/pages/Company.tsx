@@ -7,6 +7,7 @@ import { median } from "../model/stats";
 import { COUNTRY, fmtDayShort, int, nVac, pct, pct0, plural, usd } from "../model/format";
 import { Columns, HBars, Table, head, row } from "../charts/kit";
 import { Feed } from "../components/Feed";
+import { WatchButton } from "../components/Watch";
 
 export default function Company() {
   const { id = "" } = useParams();
@@ -59,6 +60,7 @@ export default function Company() {
     <main className="wrap">
       <nav className="crumbs"><Link to="/">Обзор</Link><span>›</span><Link to="/c">Компании</Link></nav>
       <h1 className="page-title">{emp.name}</h1>
+      <div style={{ marginTop: 14 }}><WatchButton kind="c" id={id} label={emp.name} /></div>
       <p className="lede">
         {d.countries.map((c) => COUNTRY[c]).join(", ")}. За время наблюдения — <b>{nVac(d.ads.length)}</b>, сейчас открыто <b>{int(uniqueAds(d.active).length)}</b>.
         {d.payPct != null && <> Предлагает зарплату выше, чем <b>{pct0(d.payPct)}</b> похожих вакансий рынка.</>}

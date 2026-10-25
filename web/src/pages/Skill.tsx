@@ -6,6 +6,7 @@ import { coSkills, hiringEmployers, opensByWeek, skillKey, skillPremium, windowS
 import { quartiles } from "../model/stats";
 import { IN_COUNTRY, dec1, fmtDayShort, int, nVac, pct, pct0, usd } from "../model/format";
 import { Columns, HBars, Table, head, row } from "../charts/kit";
+import { WatchButton } from "../components/Watch";
 
 export default function Skill() {
   const { key: raw = "" } = useParams();
@@ -51,6 +52,7 @@ export default function Skill() {
       <main className="wrap">
         <nav className="crumbs"><Link to="/">Обзор</Link><span>›</span><Link to="/s">Навыки</Link></nav>
         <h1 className="page-title">{d.name}</h1>
+        <div style={{ marginTop: 14 }}><WatchButton kind="s" id={key} label={d.name} /></div>
         <p className="lede">
           Встречается в <b>{pct(d.share)}</b> IT-вакансий {IN_COUNTRY[scope]} — это {nVac(d.ads.length)} за время наблюдения, сейчас открыто <b>{int(uniqueAds(d.active).length)}</b>.
           {d.premium && <> При той же роли и опыте вакансии с этим навыком предлагают на <b>{d.premium.pct >= 0 ? "" : "−"}{dec1(Math.abs(d.premium.pct))}%</b> {d.premium.pct >= 0 ? "больше" : "меньше"}.</>}

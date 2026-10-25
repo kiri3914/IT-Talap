@@ -12,6 +12,21 @@ const EXP = ["noExperience", "between1And3", "between3And6", "moreThan6"];
 const FORMAT: Record<string, string> = { ON_SITE: "В офисе", HYBRID: "Гибрид", REMOTE: "Удалённо", FIELD_WORK: "Разъездная" };
 const CG = ["Алматы", "Астана", "other_kz", "Ташкент", "other_uz", "Бишкек", "other_kg"];
 
+/** CSV для Excel: точка с запятой не трогаем, BOM — чтобы Excel узнал UTF-8. */
+function downloadCsv(name: string, rows: Array<Array<string | number | null>>) {
+  const cell = (v: string | number | null) => {
+    const t = v == null ? "" : String(v);
+    return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const text = "\ufeff" + rows.map((r) => r.map(cell).join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /** Мультивыбор как ряд переключателей: состояние — список в параметре ссылки. */
 function Multi({ name, options, label, params, set }: {
   name: string; options: Array<[string, string]>; label: string; params: URLSearchParams; set: (k: string, v: string[]) => void;
@@ -117,7 +132,16 @@ export default function Explorer() {
             </span>
           </label>
         </div>
-        <div><button type="button" className="btn ghost" onClick={() => setParams(new URLSearchParams(), { replace: true })}>Сбросить фильтры</button></div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <button type="button" className="btn ghost" onClick={() => setParams(new URLSearchParams(), { replace: true })}>Сбросить фильтры</button>
+          <button type="button" className="btn ghost" id="x-csv" onClick={() => downloadCsv(`talap-${s.days[s.lastIx]}.csv`, [
+            ["id", "вакансия", "компания", "страна", "город", "профессия", "опыт", "формат", "зарплата от", "зарплата до", "валюта", "в долларах", "создана", "открыта сейчас", "ссылка"],
+            ...res.list.map((v) => [v.id, v.t, employerName(v.emp, s), v.c, v.city, v.p ? s.overview.professions[v.p]?.title ?? v.p : "",
+              v.e ? s.overview.experience_labels[v.e] : "", v.f ? FORMAT[v.f] ?? v.f : "", v.sal?.[0] ?? null, v.sal?.[1] ?? null, v.sal?.[2] ?? null,
+              v.usd, v.created, isActive(v, s) ? "да" : "нет", v.url]),
+          ])}>Скачать CSV</button>
+          <span className="subnote">CSV — только для команды: в нём данные по отдельным вакансиям.</span>
+        </div>
       </div>
 
       <div className="kpis">

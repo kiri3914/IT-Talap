@@ -9,6 +9,7 @@ import { quartiles } from "../model/stats";
 import { IN_COUNTRY, cityGroupLabel, dec1, fmtDayShort, int, kUsd, nVac, pct, pct0, usd } from "../model/format";
 import { Columns, DotRange, HBars, Survival, Table, head, row } from "../charts/kit";
 import { Feed } from "../components/Feed";
+import { WatchButton } from "../components/Watch";
 
 const EXP_ORDER = ["noExperience", "between1And3", "between3And6", "moreThan6"];
 const FORMAT: Record<string, string> = { ON_SITE: "В офисе", HYBRID: "Гибрид", REMOTE: "Удалённо", FIELD_WORK: "Разъездная" };
@@ -58,6 +59,7 @@ export default function Profession() {
       <main className="wrap">
         <nav className="crumbs"><Link to="/">Обзор</Link><span>›</span><Link to="/p">Профессии</Link></nav>
         <h1 className="page-title">{prof.title}</h1>
+        <div style={{ marginTop: 14 }}><WatchButton kind="p" id={code} label={prof.title} /></div>
         <p className="lede">
           {IN_COUNTRY[scope][0].toUpperCase() + IN_COUNTRY[scope].slice(1)} сейчас открыто <b>{nVac(d.active.length)}</b>.
           За последние 30 дней открылось <b>{int(d.counts.open)}</b>, пропало из выдачи <b>{int(d.counts.close)}</b>.

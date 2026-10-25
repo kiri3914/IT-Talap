@@ -8,6 +8,7 @@ import { IN_COUNTRY, dec1, int, nVac, pct0, usd } from "../model/format";
 import { HBars, head, row } from "../charts/kit";
 import { Feed } from "../components/Feed";
 import { parseVacancyId } from "../components/Search";
+import { WatchDigest } from "../components/Watch";
 
 export default function Home() {
   const s = useStore();
@@ -67,6 +68,12 @@ export default function Home() {
           <div className="kpi"><div className="v num">{d.salary ? usd(d.salary.median) : "—"}</div><div className="k">медианная зарплата</div><div className="s">по вакансиям с вилкой</div></div>
           <div className="kpi"><div className="v num">{pct0(k.disclosed_pct)}</div><div className="k">указывают зарплату</div></div>
         </div>
+
+        <section className="block">
+          <p className="eyebrow">Избранное</p>
+          <h2>Что нового у того, за чем вы следите</h2>
+          <WatchDigest s={s} />
+        </section>
 
         <section className="block">
           <p className="eyebrow">Последние 7 дней</p>

@@ -200,7 +200,8 @@ def main() -> int:
             "ad": ad_key(v),
             "lat": address.get("lat"),
             "lng": address.get("lng"),
-            "url": v.get("alternate_url") or f"https://{DOMAIN[country]}/vacancy/{sid}",
+            # хвост ?tech_source=api — метка API, людям в ссылке не нужна
+            "url": (v.get("alternate_url") or f"https://{DOMAIN[country]}/vacancy/{sid}").split("?")[0],
         })
 
     events.sort(key=lambda e: (e[0], e[1]))
