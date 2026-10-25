@@ -20,6 +20,17 @@ cd "$APP_DIR"
 STARTED=$(date '+%Y-%m-%d %H:%M:%S')
 FAILED=()
 
+# Внешний сторож (healthchecks.io или совместимый). Алерт из этого же
+# скрипта молчит ровно тогда, когда он нужнее всего: сервер выключен или
+# cron не сработал. Так мы потеряли 5 и 6 октября и узнали через 10 дней.
+# Сторож живёт снаружи: не пришёл пинг к сроку — он сам пишет вам.
+HC_URL=$(grep -E '^HEALTHCHECK_URL=' "$APP_DIR/.env" 2>/dev/null | cut -d= -f2-)
+ping_hc() {
+    [ -n "$HC_URL" ] || return 0
+    curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL$1" || echo "сторож не ответил ($1)"
+}
+ping_hc /start
+
 step() {
     local name="$1"; shift
     echo ""
@@ -61,8 +72,10 @@ echo ""
 echo "═════ итог $(date '+%H:%M:%S') ═════"
 if [ ${#FAILED[@]} -eq 0 ]; then
     echo "все шаги прошли"
+    ping_hc ""
     exit 0
 fi
+ping_hc /fail
 
 echo "не прошло: ${FAILED[*]}"
 # Алерт шлём сами: ingestion.run сообщает только о своих падениях,
