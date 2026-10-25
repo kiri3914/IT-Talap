@@ -16,6 +16,8 @@ import Skill from "./pages/Skill";
 import Calculator from "./pages/Calculator";
 import Market from "./pages/Market";
 import Method from "./pages/Method";
+import Explorer from "./pages/Explorer";
+import TimeMachine from "./pages/TimeMachine";
 
 // ---------- каркас ----------
 
@@ -43,6 +45,8 @@ function Layout({ children }: { children: ReactNode }) {
             <NavLink to="/c">Компании</NavLink>
             <NavLink to="/s">Навыки</NavLink>
             <NavLink to="/calc">Калькулятор</NavLink>
+            <NavLink to="/x">Конструктор</NavLink>
+            <NavLink to="/time">Машина времени</NavLink>
             <NavLink to="/method">Методология</NavLink>
           </nav>
           <button type="button" className="searchbtn" onClick={() => setSearchOpen(true)}>
@@ -109,6 +113,8 @@ export default function App() {
               <Route path="/calc" element={<Calculator />} />
               <Route path="/m" element={<Market />} />
               <Route path="/method" element={<Method />} />
+              <Route path="/x" element={<Explorer />} />
+              <Route path="/time" element={<TimeMachine />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
