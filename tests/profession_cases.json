@@ -1,0 +1,85 @@
+{
+ "match": [
+  [
+   "Senior Python Developer",
+   "developer"
+  ],
+  [
+   "Программист 1С",
+   "developer"
+  ],
+  [
+   "Frontend-разработчик (React)",
+   "developer"
+  ],
+  [
+   "DevOps-разработчик",
+   "devops"
+  ],
+  [
+   "Руководитель отдела разработки",
+   "dev_lead"
+  ],
+  [
+   "Team Lead Java",
+   "dev_lead"
+  ],
+  [
+   "Data Engineer",
+   "data_analyst"
+  ],
+  [
+   "ML Engineer",
+   "data_scientist"
+  ],
+  [
+   "QA Automation Engineer",
+   "qa"
+  ],
+  [
+   "Системный аналитик",
+   "systems_analyst"
+  ],
+  [
+   "Бизнес-аналитик",
+   "business_analyst"
+  ],
+  [
+   "Аналитик",
+   "analyst"
+  ],
+  [
+   "UI/UX дизайнер",
+   "designer"
+  ],
+  [
+   "Product Manager",
+   "product_manager"
+  ],
+  [
+   "Руководитель проектов",
+   "project_manager"
+  ],
+  [
+   "Специалист технической поддержки",
+   "support"
+  ],
+  [
+   "Системный администратор",
+   "sysadmin"
+  ],
+  [
+   "Специалист по информационной безопасности",
+   "security"
+  ],
+  [
+   "Технический директор (CTO)",
+   "cto"
+  ]
+ ],
+ "none": [
+  "",
+  "Бухгалтер",
+  "Водитель категории B"
+ ]
+}

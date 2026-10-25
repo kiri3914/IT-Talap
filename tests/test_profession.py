@@ -1,40 +1,25 @@
-"""Распознавание профессии по заголовку."""
+"""Распознавание профессии по заголовку.
+
+Примеры лежат в tests/profession_cases.json — по ним же проверяется
+TypeScript-версия правил в приложении (web/src/model/resume.test.ts).
+"""
+
+import json
+from pathlib import Path
 
 import pytest
 
 from enrichment.profession import guess_profession
 
+CASES = json.loads((Path(__file__).parent / "profession_cases.json").read_text(encoding="utf-8"))
 
-@pytest.mark.parametrize(
-    ("title", "expected"),
-    [
-        ("Senior Python Developer", "developer"),
-        ("Программист 1С", "developer"),
-        ("Frontend-разработчик (React)", "developer"),
-        # узкие роли должны побеждать широкие
-        ("DevOps-разработчик", "devops"),
-        ("Руководитель отдела разработки", "dev_lead"),
-        ("Team Lead Java", "dev_lead"),
-        ("Data Engineer", "data_analyst"),
-        ("ML Engineer", "data_scientist"),
-        ("QA Automation Engineer", "qa"),
-        ("Системный аналитик", "systems_analyst"),
-        ("Бизнес-аналитик", "business_analyst"),
-        ("Аналитик", "analyst"),
-        ("UI/UX дизайнер", "designer"),
-        ("Product Manager", "product_manager"),
-        ("Руководитель проектов", "project_manager"),
-        ("Специалист технической поддержки", "support"),
-        ("Системный администратор", "sysadmin"),
-        ("Специалист по информационной безопасности", "security"),
-        ("Технический директор (CTO)", "cto"),
-    ],
-)
+
+@pytest.mark.parametrize(("title", "expected"), CASES["match"])
 def test_распознаёт(title, expected):
     assert guess_profession(title) == expected
 
 
-@pytest.mark.parametrize("title", [None, "", "Бухгалтер", "Водитель категории B"])
+@pytest.mark.parametrize("title", [None, *CASES["none"]])
 def test_не_выдумывает(title):
     assert guess_profession(title) is None
 

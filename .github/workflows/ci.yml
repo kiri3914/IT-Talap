@@ -39,3 +39,38 @@ jobs:
             exit 1
           fi
           echo "секретов не найдено"
+
+      # Данные по вакансиям не публикуются (условия API hh, docs/sources/hh.md §5).
+      # Репозиторий публичный: файл выгрузки в нём уже публикация.
+      - name: Данные по вакансиям не в индексе
+        run: |
+          if git ls-files | grep -E '(^|/)public/data/|vacancies\.json$|events\.json$|employers\.json$'; then
+            echo "::error::в репозиторий попала выгрузка данных по вакансиям"
+            exit 1
+          fi
+          echo "выгрузки в индексе нет"
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Установка
+        run: npm ci
+
+      - name: Типы
+        run: npx tsc --noEmit
+
+      # Квантили и правила профессий сверяются с эталонами из Python:
+      # если реализации разойдутся, медианы на сайте перестанут совпадать с данными
+      - name: Тесты
+        run: npx vitest run
